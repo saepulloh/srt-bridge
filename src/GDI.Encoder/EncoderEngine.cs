@@ -341,14 +341,14 @@ public sealed class EncoderEngine : IEncoderEngine
         yield return "-loglevel"; yield return "info";
         yield return "-stats";
 
+        bool isDecklink = c.VideoDevice.Contains("Decklink", StringComparison.OrdinalIgnoreCase) ||
+                          c.VideoDevice.Contains("Blackmagic", StringComparison.OrdinalIgnoreCase);
+
         // Video input
         if (c.InputBackend == "dshow")
         {
             yield return "-f"; yield return "dshow";
             yield return "-rtbufsize"; yield return "702M";
-
-            bool isDecklink = c.VideoDevice.Contains("Decklink", StringComparison.OrdinalIgnoreCase) ||
-                              c.VideoDevice.Contains("Blackmagic", StringComparison.OrdinalIgnoreCase);
 
             if (isDecklink)
             {
@@ -438,8 +438,21 @@ public sealed class EncoderEngine : IEncoderEngine
                 : "0:a:0?";
         }
 
-        // Video filters: only scale if the requested resolution differs from input, or if explicitly requested
+        // Video filters
         var vfList = new List<string>();
+
+        // 1. Adaptive deinterlacing:
+        // Broadcast feeds from switchers like vMix into DeckLink are frequently output as 1080i50 (interlaced).
+        // Without deinterlacing, motion causes horizontal combing/teeth artifacts ("pecah/bergerigi"),
+        // which makes the video appear severely blurred and low-resolution on progressive displays.
+        // 'bwdif=mode=send_frame:parity=auto:deint=interlaced' dynamically detects and deinterlaces
+        // interlaced fields into crisp progressive frames while passing pure progressive (1080p) feeds untouched.
+        if (isDecklink || (c.InputBackend == "dshow" && !c.VideoDevice.Contains("vMix Video", StringComparison.OrdinalIgnoreCase)))
+        {
+            vfList.Add("bwdif=mode=send_frame:parity=auto:deint=interlaced");
+        }
+
+        // 2. Geometry scaling: only scale if target differs from input or if input geometry was unprobed
         int inW = overrideWidth ?? (c.Width > 0 ? c.Width : 1920);
         int inH = overrideHeight ?? (c.Height > 0 ? c.Height : 1080);
         if (c.Width > 0 && c.Height > 0 && (c.Width != inW || c.Height != inH))
@@ -448,7 +461,6 @@ public sealed class EncoderEngine : IEncoderEngine
         }
         else if (c.Width > 0 && c.Height > 0 && overrideWidth == null)
         {
-            // Direct scale only when input geometry was not probed
             vfList.Add($"scale={c.Width}:{c.Height}:flags=bicubic");
         }
         if (c.Fps > 0 && overrideFps != null && c.Fps != overrideFps)
@@ -519,6 +531,10 @@ public sealed class EncoderEngine : IEncoderEngine
         yield return "-maxrate"; yield return $"{c.VideoBitrateKbps}k";
         yield return "-bufsize"; yield return $"{c.VideoBitrateKbps * 2}k";
         yield return "-pix_fmt"; yield return "yuv420p";
+        yield return "-color_primaries"; yield return "bt709";
+        yield return "-color_trc"; yield return "bt709";
+        yield return "-colorspace"; yield return "bt709";
+        yield return "-color_range"; yield return "tv";
 
         // Audio
         if (c.IncludeAudio)
