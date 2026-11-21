@@ -397,9 +397,15 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
         <small style="color:#38bdf8; font-size:10px; display:block; margin-top:2px;">* Gunakan 0 / Auto untuk deteksi otomatis sinyal SDI</small>
       </div>
     </div>
-    <div class="form-group">
-      <label>SRT Passphrase</label>
-      <input id="chanPassphrase" type="password" placeholder="Passphrase (10-79 chars, optional)...">
+    <div class="form-row">
+      <div class="form-group">
+        <label>SRT Stream ID (Optional)</label>
+        <input id="chanStreamId" type="text" placeholder="e.g. live/feed1 or #!::u=user,r=feed">
+      </div>
+      <div class="form-group">
+        <label>SRT Passphrase (AES)</label>
+        <input id="chanPassphrase" type="password" placeholder="Passphrase (10-79 chars, optional)...">
+      </div>
     </div>
     <div class="card-actions" style="justify-content:flex-end;">
       <button class="secondary" onclick="closeChannelModal()">Cancel</button>
@@ -602,6 +608,7 @@ async function openChannelModal() {
   $('chanResolution').value = '0x0';
   $('chanFps').value = 0;
   $('chanBitrate').value = 8000;
+  $('chanStreamId').value = '';
   $('chanPassphrase').value = '';
   await populateVideoInputs($('chanVideoDevice'), '');
   $('channelModal').classList.add('open');
@@ -625,6 +632,7 @@ async function editChannel(id) {
     $('chanResolution').value = (c.width > 0 && c.height > 0) ? `${c.width}x${c.height}` : '0x0';
     $('chanFps').value = c.fps;
     $('chanBitrate').value = c.videoBitrateKbps;
+    $('chanStreamId').value = c.streamId || '';
     $('chanPassphrase').value = c.passphrase || '';
     await populateVideoInputs($('chanVideoDevice'), c.videoDevice);
     $('channelModal').classList.add('open');
@@ -656,16 +664,9 @@ async function saveChannel() {
     height: h,
     fps: Number($('chanFps').value) || 0,
     videoBitrateKbps: Number($('chanBitrate').value),
+    streamId: $('chanStreamId').value ? $('chanStreamId').value.trim() : null,
     passphrase: $('chanPassphrase').value || null
   };
-  if (currentEditingId) {
-    await api(`/api/channels/${currentEditingId}`, 'PUT', payload);
-  } else {
-    await api('/api/channels', 'POST', payload);
-  }
-  closeChannelModal();
-  loadChannels();
-}
   if (currentEditingId) {
     await api(`/api/channels/${currentEditingId}`, 'PUT', payload);
   } else {

@@ -138,6 +138,33 @@ public class SrtAndEncoderTests
     }
 
     [Fact]
+    public void SrtUriBuilder_EncodesStreamIdForEncoderAndDecoder()
+    {
+        var encoder = new ChannelConfig
+        {
+            Name = "TEST_ENC_STREAMID",
+            Direction = ChannelDirection.Encoder,
+            Mode = SrtMode.Caller,
+            Host = "10.0.0.50",
+            Port = 9000,
+            StreamId = "live/primary?auth=token123"
+        };
+        var encUri = SrtUriBuilder.BuildFromChannel(encoder);
+        Assert.Contains("streamid=live%2Fprimary%3Fauth%3Dtoken123", encUri);
+
+        var decoder = new ChannelConfig
+        {
+            Name = "TEST_DEC_STREAMID",
+            Direction = ChannelDirection.Decoder,
+            Mode = SrtMode.Listener,
+            Port = 9001,
+            StreamId = "#!::u=studio,r=feed01,m=publish"
+        };
+        var decUri = SrtUriBuilder.BuildFromChannel(decoder);
+        Assert.Contains("streamid=%23%21%3A%3Au%3Dstudio%2Cr%3Dfeed01%2Cm%3Dpublish", decUri);
+    }
+
+    [Fact]
     public void SrtMetricsParser_ParsesFfmpegProgressLine()
     {
         const string sampleLine = "frame=  240 fps=60.0 q=24.0 size=    2048kB time=00:00:04.00 bitrate=4194.3kbits/s speed=1.00x drop=2";

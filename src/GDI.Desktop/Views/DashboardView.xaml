@@ -142,6 +142,19 @@
                                         <Border CornerRadius="3" Padding="4,1" Margin="8,0,0,0" Background="#1A3B5C" BorderBrush="{StaticResource AccentBlueBrush}" BorderThickness="1">
                                             <TextBlock Text="{Binding DirectionText}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
                                         </Border>
+                                        <Border CornerRadius="3" Padding="4,1" Margin="6,0,0,0" Background="#172554" BorderBrush="#38BDF8" BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasStreamId}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding StreamId, StringFormat='{}SID: {0}'}" FontSize="8" FontWeight="Bold" Foreground="#38BDF8"/>
+                                        </Border>
                                     </StackPanel>
                                     <Border CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
                                         <Border.Style>

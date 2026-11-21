@@ -133,7 +133,11 @@ public sealed class ChannelCardViewModel : ViewModelBase
     public ChannelDirection Direction => Config.Direction;
     public string DirectionText => Direction == ChannelDirection.Encoder ? "ENCODER" : "DECODER";
     public string InputDevice => Config.VideoDevice;
-    public string SrtTarget => $"{Config.Host}:{Config.Port} ({Config.Mode})";
+    public string? StreamId => Config.StreamId;
+    public bool HasStreamId => !string.IsNullOrWhiteSpace(Config.StreamId);
+    public string SrtTarget => HasStreamId
+        ? $"{Config.Host}:{Config.Port} ({Config.Mode}) [SID: {Config.StreamId}]"
+        : $"{Config.Host}:{Config.Port} ({Config.Mode})";
     public string Format => (Config.Width > 0 && Config.Height > 0)
         ? $"{Config.Width}x{Config.Height} @ {(Config.Fps > 0 ? Config.Fps.ToString() + "p" : "Auto")}"
         : (Config.Fps > 0 ? $"Auto @ {Config.Fps}p" : "Auto (Match Input)");

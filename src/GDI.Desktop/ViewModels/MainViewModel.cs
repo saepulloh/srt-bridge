@@ -209,6 +209,7 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FormFps));
         }
     }
+    public string FormStreamId { get; set; } = "";
     public string FormPassphrase { get; set; } = "";
     public VideoInputChoice? FormSelectedVideoInput { get; set; }
     public ObservableCollection<VideoInputChoice> VideoInputChoices { get; } = [];
@@ -362,6 +363,7 @@ public sealed class MainViewModel : ViewModelBase
                 ? $"{channel.Width}x{channel.Height}"
                 : "Auto (Match Input Source)";
             FormFps = channel.Fps;
+            FormStreamId = channel.StreamId ?? "";
             FormPassphrase = channel.Passphrase ?? "";
             FormSelectedVideoInput = VideoInputChoices.FirstOrDefault(c => c.DeviceName.Equals(channel.VideoDevice, StringComparison.OrdinalIgnoreCase))
                 ?? VideoInputChoices.FirstOrDefault();
@@ -380,6 +382,7 @@ public sealed class MainViewModel : ViewModelBase
             FormVideoCodec = "h264";
             FormResolution = "Auto (Match Input Source)";
             FormFps = 0; // Auto
+            FormStreamId = "";
             FormPassphrase = "";
             FormSelectedVideoInput = VideoInputChoices.FirstOrDefault();
         }
@@ -397,6 +400,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(FormResolution));
         OnPropertyChanged(nameof(FormFpsString));
         OnPropertyChanged(nameof(FormFps));
+        OnPropertyChanged(nameof(FormStreamId));
         OnPropertyChanged(nameof(FormPassphrase));
         OnPropertyChanged(nameof(FormSelectedVideoInput));
         IsChannelModalOpen = true;
@@ -417,6 +421,7 @@ public sealed class MainViewModel : ViewModelBase
         ch.Encoder = FormEncoder;
         ch.VideoCodec = FormVideoCodec;
         ch.Fps = FormFps;
+        ch.StreamId = string.IsNullOrWhiteSpace(FormStreamId) ? null : FormStreamId.Trim();
         ch.Passphrase = FormPassphrase;
 
         if (string.IsNullOrWhiteSpace(FormResolution) || FormResolution.StartsWith("Auto", StringComparison.OrdinalIgnoreCase))

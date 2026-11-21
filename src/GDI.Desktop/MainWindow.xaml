@@ -551,9 +551,23 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Form Field: Passphrase -->
-                        <TextBlock Text="SRT PASSPHRASE (OPTIONAL AES ENCRYPTION)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
-                        <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormPassphrase, Mode=TwoWay}" Margin="0,0,0,18"/>
+                        <!-- Form Field: Stream ID & Passphrase -->
+                        <Grid Margin="0,0,0,18">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="SRT STREAM ID (OPTIONAL)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormStreamId, Mode=TwoWay}"/>
+                                <TextBlock Text="* Contoh: live/feed1 atau #!::u=user,r=feed" FontSize="9" Foreground="#38BDF8" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="SRT PASSPHRASE (OPTIONAL AES)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormPassphrase, Mode=TwoWay}"/>
+                                <TextBlock Text="* Minimal 10 karakter jika enkripsi diaktifkan" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Grid>
 
                         <!-- Action Buttons -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
