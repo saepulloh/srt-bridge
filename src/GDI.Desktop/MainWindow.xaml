@@ -519,6 +519,7 @@
                             <StackPanel Grid.Column="2" Margin="6,0,0,0">
                                 <TextBlock Text="BITRATE (KBPS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
                                 <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormBitrate, Mode=TwoWay}"/>
+                                <TextBlock Text="* Contoh: 15000 (15 Mbps) atau 8000 (8 Mbps)" FontSize="9" Foreground="#38BDF8" Margin="0,3,0,0"/>
                             </StackPanel>
                         </Grid>
 

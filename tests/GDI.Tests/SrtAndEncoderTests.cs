@@ -207,6 +207,10 @@ public class SrtAndEncoderTests
         Assert.Contains("ll", args);
         Assert.Contains("-bf", args);
         Assert.Contains("0", args);
+        Assert.Contains("-spatial-aq", args);
+        Assert.Contains("1", args);
+        Assert.Contains("-profile:v", args);
+        Assert.Contains("high", args);
     }
 
     [Fact]

@@ -651,6 +651,8 @@ async function saveChannel() {
       h = parts[1];
     }
   }
+  let br = Number($('chanBitrate').value);
+  if (br > 0 && br <= 100) br *= 1000;
   const payload = {
     name: $('chanName').value,
     direction: Number($('chanDirection').value),
@@ -663,7 +665,7 @@ async function saveChannel() {
     width: w,
     height: h,
     fps: Number($('chanFps').value) || 0,
-    videoBitrateKbps: Number($('chanBitrate').value),
+    videoBitrateKbps: br > 0 ? br : 8000,
     streamId: $('chanStreamId').value ? $('chanStreamId').value.trim() : null,
     passphrase: $('chanPassphrase').value || null
   };

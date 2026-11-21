@@ -438,13 +438,20 @@ public sealed class EncoderEngine : IEncoderEngine
                 : "0:a:0?";
         }
 
-        // Video filters: only scale or fps if explicitly specified by user (not 0 / Auto)
+        // Video filters: only scale if the requested resolution differs from input, or if explicitly requested
         var vfList = new List<string>();
-        if (c.Width > 0 && c.Height > 0)
+        int inW = overrideWidth ?? (c.Width > 0 ? c.Width : 1920);
+        int inH = overrideHeight ?? (c.Height > 0 ? c.Height : 1080);
+        if (c.Width > 0 && c.Height > 0 && (c.Width != inW || c.Height != inH))
         {
-            vfList.Add($"scale={c.Width}:{c.Height}");
+            vfList.Add($"scale={c.Width}:{c.Height}:flags=bicubic");
         }
-        if (c.Fps > 0)
+        else if (c.Width > 0 && c.Height > 0 && overrideWidth == null)
+        {
+            // Direct scale only when input geometry was not probed
+            vfList.Add($"scale={c.Width}:{c.Height}:flags=bicubic");
+        }
+        if (c.Fps > 0 && overrideFps != null && c.Fps != overrideFps)
         {
             vfList.Add($"fps={c.Fps}");
         }
@@ -456,28 +463,37 @@ public sealed class EncoderEngine : IEncoderEngine
 
         yield return "-c:v"; yield return encoder;
 
-        // Codec specific broadcast low-latency flags
+        // Codec specific broadcast low-latency flags with high-fidelity visual tuning
         int activeFps = overrideFps ?? (c.Fps > 0 ? c.Fps : 25);
         var gop = activeFps * 2;
         if (encoder.EndsWith("_nvenc", StringComparison.Ordinal))
         {
-            yield return "-preset"; yield return "p4";
-            yield return "-tune"; yield return "ll";
+            yield return "-preset"; yield return "p6"; // High quality (slower preset on Ada Lovelace RTX 4060)
+            yield return "-tune"; yield return "ll";   // Low latency
+            if (encoder.StartsWith("h264", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return "-profile:v"; yield return "high"; // High profile enables 8x8 DCT transform for razor-sharp edges
+            }
             yield return "-rc"; yield return "cbr";
+            yield return "-spatial-aq"; yield return "1"; // Spatial Adaptive Quantization maintains crisp fine textures & faces
+            yield return "-temporal-aq"; yield return "1"; // Temporal AQ avoids macroblocking across moving frames
+            yield return "-aq-strength"; yield return "8";
+            yield return "-multipass"; yield return "qres"; // Two-pass rate control in hardware
+            yield return "-coder"; yield return "cabac";   // Advanced entropy coding
             yield return "-g"; yield return gop.ToString();
             yield return "-bf"; yield return "0";
             yield return "-rc-lookahead"; yield return "0";
         }
         else if (encoder.EndsWith("_qsv", StringComparison.Ordinal))
         {
-            yield return "-preset"; yield return "veryfast";
+            yield return "-preset"; yield return "medium";
             yield return "-look_ahead"; yield return "0";
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
         }
         else if (encoder.EndsWith("_amf", StringComparison.Ordinal))
         {
-            yield return "-quality"; yield return "speed";
+            yield return "-quality"; yield return "balanced";
             yield return "-rc"; yield return "cbr";
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
@@ -493,6 +509,8 @@ public sealed class EncoderEngine : IEncoderEngine
         {
             yield return "-preset"; yield return "veryfast";
             yield return "-tune"; yield return "zerolatency";
+            yield return "-profile:v"; yield return "high";
+            yield return "-coder"; yield return "cabac";
             yield return "-g"; yield return gop.ToString();
             yield return "-threads"; yield return Math.Max(2, Environment.ProcessorCount / 2).ToString();
         }
@@ -518,16 +536,16 @@ public sealed class EncoderEngine : IEncoderEngine
         yield return "-f"; yield return "mpegts";
         yield return SrtUriBuilder.BuildFromChannel(c);
 
-        // Output 2: Live preview snapshot for Multiview & Video Cards Monitoring
+        // Output 2: Live preview snapshot for Multiview & Video Cards Monitoring (crisp 960x540)
         var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
         try { Directory.CreateDirectory(previewDir); } catch { }
         var previewFile = Path.Combine(previewDir, $"{c.Id:N}.jpg").Replace('\\', '/');
 
         yield return "-map"; yield return "0:v:0";
         yield return "-an";
-        yield return "-vf"; yield return "fps=15,scale=640:360";
+        yield return "-vf"; yield return "fps=15,scale=960:540";
         yield return "-c:v"; yield return "mjpeg";
-        yield return "-q:v"; yield return "3";
+        yield return "-q:v"; yield return "2";
         yield return "-f"; yield return "image2";
         yield return "-update"; yield return "1";
         yield return "-y";

@@ -417,7 +417,15 @@ public sealed class MainViewModel : ViewModelBase
         ch.Mode = FormMode;
         ch.Host = FormHost;
         ch.Port = FormPort;
-        ch.VideoBitrateKbps = FormBitrate;
+
+        var bitrate = FormBitrate;
+        if (bitrate > 0 && bitrate <= 100)
+        {
+            // Auto-convert Mbps input (e.g. 15 -> 15000 kbps)
+            bitrate *= 1000;
+        }
+        ch.VideoBitrateKbps = bitrate > 0 ? bitrate : 8000;
+
         ch.Encoder = FormEncoder;
         ch.VideoCodec = FormVideoCodec;
         ch.Fps = FormFps;
