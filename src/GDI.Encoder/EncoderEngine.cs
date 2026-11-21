@@ -525,9 +525,9 @@ public sealed class EncoderEngine : IEncoderEngine
 
         yield return "-map"; yield return "0:v:0";
         yield return "-an";
-        yield return "-vf"; yield return "fps=2,scale=480:270";
+        yield return "-vf"; yield return "fps=15,scale=640:360";
         yield return "-c:v"; yield return "mjpeg";
-        yield return "-q:v"; yield return "5";
+        yield return "-q:v"; yield return "3";
         yield return "-f"; yield return "image2";
         yield return "-update"; yield return "1";
         yield return "-y";

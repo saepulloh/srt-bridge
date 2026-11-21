@@ -685,7 +685,14 @@ public class SrtAndEncoderTests
         System.Runtime.InteropServices.Marshal.ReleaseComObject(outputObj);
         System.Runtime.InteropServices.Marshal.Release(port3Ptr);
         System.Runtime.InteropServices.Marshal.ReleaseComObject(iterObj);
+    }
 
-        File.WriteAllText("decklink_output_port3.txt", sb.ToString());
+    [Fact]
+    public void DeckLinkPlayoutEngine_ResolvesCorrectDisplayModes()
+    {
+        Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD1080p50, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1920, 1080, 50));
+        Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD1080p6000, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1920, 1080, 60));
+        Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD1080p25, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1920, 1080, 25));
+        Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD720p50, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1280, 720, 50));
     }
 }

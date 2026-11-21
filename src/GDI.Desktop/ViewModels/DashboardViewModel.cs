@@ -138,6 +138,27 @@ public sealed class ChannelCardViewModel : ViewModelBase
         ? $"{Config.Width}x{Config.Height} @ {(Config.Fps > 0 ? Config.Fps.ToString() + "p" : "Auto")}"
         : (Config.Fps > 0 ? $"Auto @ {Config.Fps}p" : "Auto (Match Input)");
     public string CodecEncoder => $"{Config.Encoder.ToUpperInvariant()} / {Config.VideoCodec.ToUpperInvariant()}";
+    public string OutputRoutingText
+    {
+        get
+        {
+            if (Direction == ChannelDirection.Encoder)
+            {
+                return !string.IsNullOrWhiteSpace(Config.VideoDevice) ? Config.VideoDevice : "Virtual / NDI";
+            }
+
+            if (Config.OutputTarget?.Contains("decklink", StringComparison.OrdinalIgnoreCase) == true ||
+                Config.VideoDevice?.Contains("decklink", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var port = "3";
+                var m = System.Text.RegularExpressions.Regex.Match($"{Config.OutputDeviceId} {Config.VideoDevice}", @"(\d+)");
+                if (m.Success) port = m.Groups[1].Value;
+                return $"DeckLink SDI Port {port}";
+            }
+
+            return "Desktop Preview Only";
+        }
+    }
 
     private int _currentBitrate;
     public int BitrateKbps

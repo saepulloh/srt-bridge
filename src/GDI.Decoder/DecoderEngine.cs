@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using GDI.Core.Events;
 using GDI.Core.Models;
+using GDI.Hardware.Adapters.Blackmagic;
 using GDI.SRT.Engine;
 
 namespace GDI.Decoder;
@@ -22,6 +24,7 @@ public sealed class DecoderEngine : IDecoderEngine
     private readonly ConcurrentDictionary<Guid, Process> _processes = new();
     private readonly ConcurrentDictionary<Guid, ChannelMetrics> _metrics = new();
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _locks = new();
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _playoutCts = new();
 
     public DecoderEngine(string ffplayPath, string ffmpegPath, BroadcastEventBus eventBus)
     {
@@ -56,6 +59,11 @@ public sealed class DecoderEngine : IDecoderEngine
                 stale.Dispose();
             }
 
+            if (_playoutCts.TryRemove(channel.Id, out var staleCts))
+            {
+                try { staleCts.Cancel(); staleCts.Dispose(); } catch { }
+            }
+
             // In decoder mode, the SRT URL uses the opposite mode of transmission:
             // If sender is Caller, receiver is Listener (binds 0.0.0.0);
             // If sender is Listener, receiver is Caller (connects to Host:Port).
@@ -66,41 +74,71 @@ public sealed class DecoderEngine : IDecoderEngine
             metrics.State = "STARTING";
             metrics.LastError = "";
 
+            var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
+            try { Directory.CreateDirectory(previewDir); } catch { }
+            var previewFile = Path.Combine(previewDir, $"{channel.Id:N}.jpg").Replace('\\', '/');
+
+            // Detect whether DeckLink SDI Hardware Playout is requested
+            bool isDecklinkOutput =
+                (channel.OutputTarget?.Contains("decklink", StringComparison.OrdinalIgnoreCase) == true) ||
+                (channel.OutputTarget?.Contains("sdi", StringComparison.OrdinalIgnoreCase) == true) ||
+                (channel.VideoDevice?.Contains("decklink", StringComparison.OrdinalIgnoreCase) == true) ||
+                (channel.OutputDeviceId?.Contains("decklink", StringComparison.OrdinalIgnoreCase) == true);
+
+            int targetPort = 3; // Default to SDI Port 3 as requested
+            var portMatch = Regex.Match($"{channel.OutputDeviceId} {channel.VideoDevice} {channel.OutputPortId}", @"(\d+)");
+            if (portMatch.Success && int.TryParse(portMatch.Groups[1].Value, out var parsedPort) && parsedPort >= 1 && parsedPort <= 8)
+            {
+                targetPort = parsedPort;
+            }
+
+            int targetWidth = channel.Width > 0 ? channel.Width : 1920;
+            int targetHeight = channel.Height > 0 ? channel.Height : 1080;
+            int targetFps = channel.Fps > 0 ? channel.Fps : 50;
+
             ProcessStartInfo psi;
 
-            // Check if explicit floating window was requested, otherwise use headless background decode
-            bool useFloatingWindow = channel.OutputTarget?.Equals("window", StringComparison.OrdinalIgnoreCase) == true;
-
-            if (useFloatingWindow && File.Exists(_ffplayPath))
+            if (isDecklinkOutput)
             {
-                // Windowed player mode (clean 960x540 window, NOT fullscreen)
-                psi = new ProcessStartInfo(_ffplayPath)
+                // Headless FFmpeg: decode SRT stream, output uncompressed UYVY 4:2:2 to stdout for DeckLink SDI,
+                // and simultaneously generate 15 FPS preview JPEG for real-time Multiview
+                psi = new ProcessStartInfo(_ffmpegPath)
                 {
                     UseShellExecute = false,
                     RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = false
+                    RedirectStandardOutput = true, // Stream raw video to DeckLink playout
+                    CreateNoWindow = true // NO POPUP / FULLSCREEN WINDOW
                 };
 
                 psi.ArgumentList.Add("-hide_banner");
                 psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("warning");
                 psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
                 psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
-                psi.ArgumentList.Add("-framedrop");
-                psi.ArgumentList.Add("-x"); psi.ArgumentList.Add("960");
-                psi.ArgumentList.Add("-y"); psi.ArgumentList.Add("540");
-                psi.ArgumentList.Add("-window_title");
-                psi.ArgumentList.Add($"GDI DECODER - {channel.Name} ({channel.Width}x{channel.Height})");
-                psi.ArgumentList.Add(srtUrl);
+                psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
+                psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
+                psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
+
+                // Complex filter splits video into UYVY stream for SDI playout and JPEG stream for Multiview
+                psi.ArgumentList.Add("-filter_complex");
+                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]format=uyvy422,scale={targetWidth}:{targetHeight}[rawout];[prev]fps=15,scale=640:360[prevout]");
+
+                // Output 1: stdout raw video for DeckLink
+                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
+                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
+                psi.ArgumentList.Add("pipe:1");
+
+                // Output 2: live preview snapshot for Multiview and UI cards
+                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
+                psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
+                psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
+                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
+                psi.ArgumentList.Add("-update"); psi.ArgumentList.Add("1");
+                psi.ArgumentList.Add("-y");
+                psi.ArgumentList.Add(previewFile);
             }
             else
             {
-                // Headless FFmpeg decoder: runs completely in background with NO popup window,
-                // decoding stream and generating live preview snapshots for Multiview & UI
-                var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
-                try { Directory.CreateDirectory(previewDir); } catch { }
-                var previewFile = Path.Combine(previewDir, $"{channel.Id:N}.jpg").Replace('\\', '/');
-
+                // Headless FFmpeg decoder for Multiview / Desktop preview (NO popup window)
                 psi = new ProcessStartInfo(_ffmpegPath)
                 {
                     UseShellExecute = false,
@@ -117,12 +155,12 @@ public sealed class DecoderEngine : IDecoderEngine
                 psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
                 psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
 
-                // Live preview snapshot for Multiview and Decoder cards
+                // Live preview snapshot for Multiview and Decoder cards (15 FPS smooth)
                 psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("0:v:0");
                 psi.ArgumentList.Add("-an");
-                psi.ArgumentList.Add("-vf"); psi.ArgumentList.Add("fps=2,scale=480:270");
+                psi.ArgumentList.Add("-vf"); psi.ArgumentList.Add("fps=15,scale=640:360");
                 psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
-                psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("5");
+                psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
                 psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
                 psi.ArgumentList.Add("-update"); psi.ArgumentList.Add("1");
                 psi.ArgumentList.Add("-y");
@@ -160,6 +198,12 @@ public sealed class DecoderEngine : IDecoderEngine
                 metrics.AudioLevelLeftDb = -60f;
                 metrics.AudioLevelRightDb = -60f;
                 _processes.TryRemove(channel.Id, out _);
+
+                if (_playoutCts.TryRemove(channel.Id, out var cts))
+                {
+                    try { cts.Cancel(); cts.Dispose(); } catch { }
+                }
+
                 _eventBus.Publish(new ChannelMetrics { ChannelId = channel.Id, State = "STOPPED" });
             };
 
@@ -171,12 +215,33 @@ public sealed class DecoderEngine : IDecoderEngine
             }
 
             process.BeginErrorReadLine();
-            process.BeginOutputReadLine();
+
+            if (isDecklinkOutput)
+            {
+                var cts = new CancellationTokenSource();
+                _playoutCts[channel.Id] = cts;
+                var rawStream = process.StandardOutput.BaseStream;
+
+                _ = Task.Run(async () =>
+                {
+                    _eventBus.Publish($"[SDI DECODER] Initiating DeckLink SDI playout on Port {targetPort} ({targetWidth}x{targetHeight} @ {targetFps}p)...");
+                    await DeckLinkPlayoutEngine.PlayRawFramesAsync(
+                        targetPort, targetWidth, targetHeight, targetFps,
+                        rawStream, cts.Token,
+                        msg => _eventBus.Publish(msg)
+                    );
+                });
+            }
+            else
+            {
+                process.BeginOutputReadLine();
+            }
 
             _processes[channel.Id] = process;
             metrics.State = "RECEIVING";
 
-            return (true, $"Receiver for '{channel.Name}' started in background on {channel.Port} (PID {process.Id}).");
+            var outputDesc = isDecklinkOutput ? $"DeckLink SDI Port {targetPort}" : "Desktop Multiview";
+            return (true, $"Receiver for '{channel.Name}' started (Port {channel.Port} -> {outputDesc}, PID {process.Id}).");
         }
         catch (Exception ex)
         {
@@ -197,6 +262,11 @@ public sealed class DecoderEngine : IDecoderEngine
         await gate.WaitAsync();
         try
         {
+            if (_playoutCts.TryRemove(channelId, out var cts))
+            {
+                try { cts.Cancel(); cts.Dispose(); } catch { }
+            }
+
             if (_processes.TryRemove(channelId, out var process))
             {
                 try

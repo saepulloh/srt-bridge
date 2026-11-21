@@ -149,8 +149,24 @@ public sealed class MainViewModel : ViewModelBase
     public int FormDirectionIndex
     {
         get => (int)FormDirection;
-        set { if (value >= 0) FormDirection = (ChannelDirection)value; }
+        set
+        {
+            if (value >= 0)
+            {
+                FormDirection = (ChannelDirection)value;
+                OnPropertyChanged(nameof(FormDeviceSectionTitle));
+                OnPropertyChanged(nameof(FormDeviceSectionHint));
+            }
+        }
     }
+
+    public string FormDeviceSectionTitle => FormDirection == ChannelDirection.Decoder
+        ? "SDI / HARDWARE OUTPUT TARGET (PLAYOUT)"
+        : "PHYSICAL VIDEO INPUT SOURCE (INGEST)";
+
+    public string FormDeviceSectionHint => FormDirection == ChannelDirection.Decoder
+        ? "* Pilih DeckLink Port 3 untuk mengeluarkan sinyal gambar SDI langsung ke hardware monitor/switcher."
+        : "* Pilih device DeckLink / capture card untuk input sinyal video broadcast.";
 
     public SrtMode FormMode { get; set; } = SrtMode.Caller;
     public int FormModeIndex
@@ -447,6 +463,12 @@ public sealed class MainViewModel : ViewModelBase
             ch.AudioDevice = isDecklink
                 ? FormSelectedVideoInput.DeviceName.Replace("Video", "Audio")
                 : null;
+
+            if (ch.Direction == ChannelDirection.Decoder)
+            {
+                ch.OutputTarget = isDecklink ? "decklink" : "preview";
+                ch.OutputDeviceId = FormSelectedVideoInput.DeviceName;
+            }
         }
 
         await ChannelManager.AddOrUpdateAsync(ch);

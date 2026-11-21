@@ -109,164 +109,180 @@
                                     </Border>
                                 </DockPanel>
 
-                                <!-- Tile Center Video Area (Live Video or SMPTE 75% Color Bars) -->
-                                <Border Grid.Row="1" Background="#04070B" CornerRadius="4" ClipToBounds="True" Margin="0,6,0,6" MinHeight="130">
-                                    <Grid>
-                                        <!-- SMPTE 75% Broadcast Color Bars (shown when off-air or no live frame) -->
-                                        <Grid>
-                                            <Grid.Style>
-                                                <Style TargetType="Grid">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasFrame}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Grid.Style>
+                                <!-- Tile Center Video Area & Vertical Portrait Audio Meter (Flanking Right) -->
+                                <Grid Grid.Row="1" Margin="0,6,0,6" MinHeight="130">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
+                                    <!-- Video Display (Live Video or SMPTE 75% Color Bars) -->
+                                    <Border Grid.Column="0" Background="#04070B" CornerRadius="4" ClipToBounds="True">
+                                        <Grid>
+                                            <!-- SMPTE 75% Broadcast Color Bars (shown when off-air or no live frame) -->
+                                            <Grid>
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasFrame}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="67*"/>
+                                                    <RowDefinition Height="8*"/>
+                                                    <RowDefinition Height="25*"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Top 67%: 7 EIA Color Bars -->
+                                                <UniformGrid Grid.Row="0" Rows="1" Columns="7">
+                                                    <Rectangle Fill="#C0C0C0"/> <!-- 75% White -->
+                                                    <Rectangle Fill="#C0C000"/> <!-- Yellow -->
+                                                    <Rectangle Fill="#00C0C0"/> <!-- Cyan -->
+                                                    <Rectangle Fill="#00C000"/> <!-- Green -->
+                                                    <Rectangle Fill="#C000C0"/> <!-- Magenta -->
+                                                    <Rectangle Fill="#C00000"/> <!-- Red -->
+                                                    <Rectangle Fill="#0000C0"/> <!-- Blue -->
+                                                </UniformGrid>
+
+                                                <!-- Middle 8%: Cast sub-bars -->
+                                                <UniformGrid Grid.Row="1" Rows="1" Columns="7">
+                                                    <Rectangle Fill="#0000C0"/>
+                                                    <Rectangle Fill="#131313"/>
+                                                    <Rectangle Fill="#C000C0"/>
+                                                    <Rectangle Fill="#131313"/>
+                                                    <Rectangle Fill="#00C0C0"/>
+                                                    <Rectangle Fill="#131313"/>
+                                                    <Rectangle Fill="#C0C0C0"/>
+                                                </UniformGrid>
+
+                                                <!-- Bottom 25%: I, White, Q, Black pluge -->
+                                                <Grid Grid.Row="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1*"/>
+                                                        <ColumnDefinition Width="1*"/>
+                                                        <ColumnDefinition Width="1*"/>
+                                                        <ColumnDefinition Width="2*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Rectangle Grid.Column="0" Fill="#00214C"/>
+                                                    <Rectangle Grid.Column="1" Fill="#FFFFFF"/>
+                                                    <Rectangle Grid.Column="2" Fill="#32006A"/>
+                                                    <Rectangle Grid.Column="3" Fill="#131313"/>
+                                                </Grid>
+
+                                                <!-- Centered OSD Badge -->
+                                                <Border Background="#D9000000" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Padding="12,5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding ChannelName}" FontSize="11" FontWeight="Bold" Foreground="White" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="· OFF-AIR" FontSize="10" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- Live Video Frame Image -->
+                                            <Image Source="{Binding FrameSource}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasFrame}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Column 1: Portrait Vertical Stereo Audio Level VU Meter -->
+                                    <Border Grid.Column="1" Width="20" Margin="6,0,0,0" Background="#04070B" CornerRadius="4" BorderBrush="#162232" BorderThickness="1" Padding="2,4">
+                                        <Grid>
                                             <Grid.RowDefinitions>
-                                                <RowDefinition Height="67*"/>
-                                                <RowDefinition Height="8*"/>
-                                                <RowDefinition Height="25*"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 
-                                            <!-- Top 67%: 7 EIA Color Bars -->
-                                            <UniformGrid Grid.Row="0" Rows="1" Columns="7">
-                                                <Rectangle Fill="#C0C0C0"/> <!-- 75% White -->
-                                                <Rectangle Fill="#C0C000"/> <!-- Yellow -->
-                                                <Rectangle Fill="#00C0C0"/> <!-- Cyan -->
-                                                <Rectangle Fill="#00C000"/> <!-- Green -->
-                                                <Rectangle Fill="#C000C0"/> <!-- Magenta -->
-                                                <Rectangle Fill="#C00000"/> <!-- Red -->
-                                                <Rectangle Fill="#0000C0"/> <!-- Blue -->
-                                            </UniformGrid>
+                                            <!-- dB Text Badge at Top -->
+                                            <TextBlock Grid.Row="0" Text="{Binding AudioLevelText}" FontSize="7" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,0,0,2"/>
 
-                                            <!-- Middle 8%: Cast sub-bars -->
-                                            <UniformGrid Grid.Row="1" Rows="1" Columns="7">
-                                                <Rectangle Fill="#0000C0"/>
-                                                <Rectangle Fill="#131313"/>
-                                                <Rectangle Fill="#C000C0"/>
-                                                <Rectangle Fill="#131313"/>
-                                                <Rectangle Fill="#00C0C0"/>
-                                                <Rectangle Fill="#131313"/>
-                                                <Rectangle Fill="#C0C0C0"/>
-                                            </UniformGrid>
-
-                                            <!-- Bottom 25%: I, White, Q, Black pluge -->
-                                            <Grid Grid.Row="2">
+                                            <!-- Dual Vertical VU Meter Bars (L / R) -->
+                                            <Grid Grid.Row="1">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="1*"/>
                                                     <ColumnDefinition Width="1*"/>
-                                                    <ColumnDefinition Width="1*"/>
-                                                    <ColumnDefinition Width="2*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Rectangle Grid.Column="0" Fill="#00214C"/>
-                                                <Rectangle Grid.Column="1" Fill="#FFFFFF"/>
-                                                <Rectangle Grid.Column="2" Fill="#32006A"/>
-                                                <Rectangle Grid.Column="3" Fill="#131313"/>
+
+                                                <!-- Left Channel Bar (Vertical) -->
+                                                <Border Grid.Column="0" Background="#060A10" CornerRadius="1" Margin="0,0,1,0" ClipToBounds="True">
+                                                    <ProgressBar Orientation="Vertical" Minimum="0" Maximum="100" Value="{Binding VuLevelLeft}" BorderThickness="0" Background="Transparent">
+                                                        <ProgressBar.Foreground>
+                                                            <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                                <GradientStop Color="#10B981" Offset="0.0"/>
+                                                                <GradientStop Color="#10B981" Offset="0.70"/>
+                                                                <GradientStop Color="#F59E0B" Offset="0.85"/>
+                                                                <GradientStop Color="#EF4444" Offset="1.0"/>
+                                                            </LinearGradientBrush>
+                                                        </ProgressBar.Foreground>
+                                                        <ProgressBar.Template>
+                                                            <ControlTemplate TargetType="ProgressBar">
+                                                                <Grid x:Name="TemplateRoot">
+                                                                    <Border Background="{TemplateBinding Background}"/>
+                                                                    <Border x:Name="PART_Track" />
+                                                                    <Border x:Name="PART_Indicator" VerticalAlignment="Bottom" Background="{TemplateBinding Foreground}" CornerRadius="1"/>
+                                                                </Grid>
+                                                            </ControlTemplate>
+                                                        </ProgressBar.Template>
+                                                    </ProgressBar>
+                                                </Border>
+
+                                                <!-- Right Channel Bar (Vertical) -->
+                                                <Border Grid.Column="1" Background="#060A10" CornerRadius="1" Margin="1,0,0,0" ClipToBounds="True">
+                                                    <ProgressBar Orientation="Vertical" Minimum="0" Maximum="100" Value="{Binding VuLevelRight}" BorderThickness="0" Background="Transparent">
+                                                        <ProgressBar.Foreground>
+                                                            <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                                <GradientStop Color="#10B981" Offset="0.0"/>
+                                                                <GradientStop Color="#10B981" Offset="0.70"/>
+                                                                <GradientStop Color="#F59E0B" Offset="0.85"/>
+                                                                <GradientStop Color="#EF4444" Offset="1.0"/>
+                                                            </LinearGradientBrush>
+                                                        </ProgressBar.Foreground>
+                                                        <ProgressBar.Template>
+                                                            <ControlTemplate TargetType="ProgressBar">
+                                                                <Grid x:Name="TemplateRoot">
+                                                                    <Border Background="{TemplateBinding Background}"/>
+                                                                    <Border x:Name="PART_Track" />
+                                                                    <Border x:Name="PART_Indicator" VerticalAlignment="Bottom" Background="{TemplateBinding Foreground}" CornerRadius="1"/>
+                                                                </Grid>
+                                                            </ControlTemplate>
+                                                        </ProgressBar.Template>
+                                                    </ProgressBar>
+                                                </Border>
                                             </Grid>
 
-                                            <!-- Centered OSD Badge -->
-                                            <Border Background="#D9000000" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Padding="12,5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding ChannelName}" FontSize="11" FontWeight="Bold" Foreground="White" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="· OFF-AIR" FontSize="10" FontWeight="SemiBold" Foreground="#94A3B8"/>
-                                                </StackPanel>
-                                            </Border>
+                                            <!-- L / R Labels at Bottom -->
+                                            <Grid Grid.Row="2" Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1*"/>
+                                                    <ColumnDefinition Width="1*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="L" FontSize="7" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="R" FontSize="7" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center"/>
+                                            </Grid>
                                         </Grid>
+                                    </Border>
+                                </Grid>
 
-                                        <!-- Live Video Frame Image -->
-                                        <Image Source="{Binding FrameSource}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasFrame}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-                                    </Grid>
-                                </Border>
-
-                                <!-- Tile Footer: Stereo Audio VU Meter & Telemetry -->
-                                <StackPanel Grid.Row="2">
-                                    <!-- Broadcast Stereo Audio Peak VU Meter (Dual Bar L/R) -->
-                                    <Grid Margin="0,3,0,5">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="14"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <!-- L / R Labels -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,3,0">
-                                            <TextBlock Text="L" FontSize="8" FontWeight="Bold" Foreground="#64748B" Height="9" VerticalAlignment="Center"/>
-                                            <TextBlock Text="R" FontSize="8" FontWeight="Bold" Foreground="#64748B" Height="9" VerticalAlignment="Center" Margin="0,2,0,0"/>
-                                        </StackPanel>
-
-                                        <!-- Dual Meter Bars with Gradient Template -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <!-- Channel Left Bar -->
-                                            <Border Height="7" Background="#060A10" CornerRadius="2" BorderBrush="#162232" BorderThickness="1" ClipToBounds="True">
-                                                <ProgressBar Height="7" Minimum="0" Maximum="100" Value="{Binding VuLevelLeft}" BorderThickness="0" Background="Transparent">
-                                                    <ProgressBar.Foreground>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                            <GradientStop Color="#10B981" Offset="0.0"/>
-                                                            <GradientStop Color="#10B981" Offset="0.70"/>
-                                                            <GradientStop Color="#F59E0B" Offset="0.85"/>
-                                                            <GradientStop Color="#EF4444" Offset="1.0"/>
-                                                        </LinearGradientBrush>
-                                                    </ProgressBar.Foreground>
-                                                    <ProgressBar.Template>
-                                                        <ControlTemplate TargetType="ProgressBar">
-                                                            <Grid x:Name="TemplateRoot">
-                                                                <Border Background="{TemplateBinding Background}"/>
-                                                                <Border x:Name="PART_Track" />
-                                                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="1"/>
-                                                            </Grid>
-                                                        </ControlTemplate>
-                                                    </ProgressBar.Template>
-                                                </ProgressBar>
-                                            </Border>
-
-                                            <!-- Channel Right Bar -->
-                                            <Border Height="7" Background="#060A10" CornerRadius="2" BorderBrush="#162232" BorderThickness="1" ClipToBounds="True" Margin="0,2,0,0">
-                                                <ProgressBar Height="7" Minimum="0" Maximum="100" Value="{Binding VuLevelRight}" BorderThickness="0" Background="Transparent">
-                                                    <ProgressBar.Foreground>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                            <GradientStop Color="#10B981" Offset="0.0"/>
-                                                            <GradientStop Color="#10B981" Offset="0.70"/>
-                                                            <GradientStop Color="#F59E0B" Offset="0.85"/>
-                                                            <GradientStop Color="#EF4444" Offset="1.0"/>
-                                                        </LinearGradientBrush>
-                                                    </ProgressBar.Foreground>
-                                                    <ProgressBar.Template>
-                                                        <ControlTemplate TargetType="ProgressBar">
-                                                            <Grid x:Name="TemplateRoot">
-                                                                <Border Background="{TemplateBinding Background}"/>
-                                                                <Border x:Name="PART_Track" />
-                                                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="1"/>
-                                                            </Grid>
-                                                        </ControlTemplate>
-                                                    </ProgressBar.Template>
-                                                </ProgressBar>
-                                            </Border>
-                                        </StackPanel>
-
-                                        <!-- dB Text Badge -->
-                                        <TextBlock Grid.Column="2" Text="{Binding AudioLevelText}" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0,0,0" Width="36" TextAlignment="Right"/>
-                                    </Grid>
-
-                                    <!-- Telemetry Line -->
-                                    <DockPanel Margin="0,1,0,0">
-                                        <TextBlock Text="{Binding ResolutionFps}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding BitrateKbps, StringFormat='{}{0:F0} kbps'}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Right"/>
-                                    </DockPanel>
-                                </StackPanel>
+                                <!-- Tile Footer: Resolution, FPS & Bitrate Telemetry -->
+                                <DockPanel Grid.Row="2" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding ResolutionFps}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding BitrateKbps, StringFormat='{}{0:F0} kbps'}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>

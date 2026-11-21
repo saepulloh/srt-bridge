@@ -1,7 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\GDI.Core\GDI.Core.csproj" />
+    <ProjectReference Include="..\GDI.Hardware\GDI.Hardware.csproj" />
     <ProjectReference Include="..\GDI.SRT.Engine\GDI.SRT.Engine.csproj" />
   </ItemGroup>
 

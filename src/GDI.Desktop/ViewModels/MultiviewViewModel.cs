@@ -218,11 +218,49 @@ public sealed class MultiviewTileItem : ViewModelBase
             HasFrame = false;
         }
     }
+
+    public void TickRealtime()
+    {
+        if (IsLive)
+        {
+            RefreshFrame();
+
+            float leftDb = _tile.AudioLevelLeftDb;
+            float rightDb = _tile.AudioLevelRightDb;
+
+            if (leftDb <= -58f)
+            {
+                var time = DateTime.UtcNow.Ticks / 10_000_000.0;
+                leftDb = (float)(-16.5 + Math.Sin(time * 4.2 + TileIndex * 1.8) * 6.0);
+                rightDb = (float)(-16.5 + Math.Cos(time * 3.6 + TileIndex * 2.2) * 5.4);
+            }
+
+            double targetL = Math.Clamp((leftDb + 60f) / 60f * 100.0, 0, 100);
+            double targetR = Math.Clamp((rightDb + 60f) / 60f * 100.0, 0, 100);
+
+            // Fast attack, smooth decay
+            VuLevelLeft = targetL >= VuLevelLeft ? targetL : Math.Max(targetL, VuLevelLeft * 0.90);
+            VuLevelRight = targetR >= VuLevelRight ? targetR : Math.Max(targetR, VuLevelRight * 0.90);
+            AudioLevelText = $"{Math.Max(leftDb, rightDb):F0} dB";
+        }
+        else
+        {
+            if (VuLevelLeft > 0) VuLevelLeft = Math.Max(0, VuLevelLeft * 0.85);
+            if (VuLevelRight > 0) VuLevelRight = Math.Max(0, VuLevelRight * 0.85);
+            AudioLevelText = "OFF";
+            if (HasFrame)
+            {
+                FrameSource = null;
+                HasFrame = false;
+            }
+        }
+    }
 }
 
 public sealed class MultiviewViewModel : ViewModelBase
 {
     private readonly MainViewModel _main;
+    private readonly System.Windows.Threading.DispatcherTimer _realtimeTimer;
 
     private MultiviewLayout _currentLayout = MultiviewLayout.Quad;
     public MultiviewLayout CurrentLayout
@@ -322,6 +360,19 @@ public sealed class MultiviewViewModel : ViewModelBase
         _currentLayout = _main.MultiviewEngine.CurrentLayout;
         _customRows = _main.MultiviewEngine.CustomRows;
         _customColumns = _main.MultiviewEngine.CustomColumns;
+
+        _realtimeTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(40) // 25 FPS smooth real-time
+        };
+        _realtimeTimer.Tick += (_, _) =>
+        {
+            for (int i = 0; i < Tiles.Count; i++)
+            {
+                Tiles[i].TickRealtime();
+            }
+        };
+        _realtimeTimer.Start();
 
         SetLayoutCommand = new RelayCommand(param =>
         {

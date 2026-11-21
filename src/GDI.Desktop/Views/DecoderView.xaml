@@ -136,7 +136,7 @@
 
                                         <StackPanel Grid.Column="3">
                                             <TextBlock Text="OUTPUT ROUTING" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text="Desktop / SDI Out 3" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                            <TextBlock Text="{Binding OutputRoutingText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentCyanBrush}"/>
                                         </StackPanel>
                                     </Grid>
 

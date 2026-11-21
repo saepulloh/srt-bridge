@@ -487,9 +487,10 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Form Field: Video Input Device -->
-                        <TextBlock Text="PHYSICAL VIDEO INPUT SOURCE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
-                        <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" ItemsSource="{Binding VideoInputChoices}" SelectedItem="{Binding FormSelectedVideoInput, Mode=TwoWay}" DisplayMemberPath="DisplayName" Margin="0,0,0,12"/>
+                        <!-- Form Field: Video Input Device or Playout Target -->
+                        <TextBlock Text="{Binding FormDeviceSectionTitle}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" ItemsSource="{Binding VideoInputChoices}" SelectedItem="{Binding FormSelectedVideoInput, Mode=TwoWay}" DisplayMemberPath="DisplayName" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding FormDeviceSectionHint}" FontSize="9" Foreground="#38BDF8" Margin="0,0,0,12"/>
 
                         <!-- Form Row: Encoder Engine, Codec & Video Bitrate -->
                         <Grid Margin="0,0,0,12">
