@@ -1,0 +1,35 @@
+# Visual Studio & .NET Build Output
+bin/
+obj/
+artifacts/
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Packages & NuGet
+*.nupkg
+packages/
+project.lock.json
+
+# Test & Media files
+*.ts
+*.mp4
+*.mkv
+*.avi
+*.log
+preview_test.jpg
+
+# Executables & Large Installers (>100MB violates GitHub limits)
+*.exe
+*.msi
+*.zip
+*.7z
+
+# External tool binaries
+tools/ffmpeg/bin/

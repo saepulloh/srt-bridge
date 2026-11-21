@@ -1,0 +1,568 @@
+<Window x:Class="GDI.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:GDI.Desktop.ViewModels"
+        xmlns:views="clr-namespace:GDI.Desktop.Views"
+        mc:Ignorable="d"
+        Title="GDI SRT EMBEDDED — Professional Native Broadcast Platform" 
+        Height="840" Width="1380"
+        MinHeight="720" MinWidth="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgDeepBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{DynamicResource MasterFontFamily}"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        KeyDown="OnWindowKeyDown">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="42" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- DataTemplates mapping ViewModels to Views -->
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <views:DashboardView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:EncoderViewModel}">
+            <views:EncoderView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DecoderViewModel}">
+            <views:DecoderView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MultiviewViewModel}">
+            <views:MultiviewView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ProgramReturnViewModel}">
+            <views:ProgramReturnView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HardwareIoViewModel}">
+            <views:HardwareIoView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NetworkViewModel}">
+            <views:NetworkView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SystemMonitorViewModel}">
+            <views:SystemMonitorView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:LogsViewModel}">
+            <views:LogsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+            <views:SettingsView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <!-- MAIN SHELL CONTAINER -->
+    <Grid Background="#070A0F">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="28"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================= -->
+        <!-- 1. TOP BAR (GLASS TITLEBAR & TELEMETRY HUD)                  -->
+        <!-- ============================================================= -->
+        <Border Grid.Row="0" Background="{StaticResource GlassHeaderGradient}" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+
+                <!-- Left Branding -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="14,0,20,0">
+                    <Border Background="#E04550" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                        <TextBlock Text="GDI" FontWeight="Black" FontSize="11" Foreground="White"/>
+                    </Border>
+                    <TextBlock Text="SRT EMBEDDED" FontWeight="Bold" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                    <Border Background="#102538" BorderBrush="{StaticResource AccentBlueBrush}" BorderThickness="1" CornerRadius="3" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="v1.0.0 NATIVE" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Window Control Buttons (Right) -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,8,0" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource WindowCtrlBtn}" Click="OnMinimizeClicked" ToolTip="Minimize">
+                        <Path Data="{StaticResource GeoMinimize}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="10" Height="2" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource WindowCtrlBtn}" Click="OnMaximizeClicked" ToolTip="Maximize / Restore">
+                        <Path Data="{StaticResource GeoMaximize}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="10" Height="10" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource WindowCloseBtn}" Click="OnCloseClicked" ToolTip="Close Application">
+                        <Path Data="{StaticResource GeoClose}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Width="10" Height="10" Stretch="Uniform"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Center Telemetry HUD & Quick Actions -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <!-- Live Tally Pill -->
+                    <Border CornerRadius="12" Padding="8,3" Margin="0,0,14,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#1C2736"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveEncodersCount}" Value="0">
+                                        <Setter Property="Background" Value="#15202E"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="6" Height="6" Margin="0,0,6,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource LiveGreenBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveEncodersCount}" Value="0">
+                                                <Setter Property="Fill" Value="{StaticResource TextMutedBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock FontSize="10" FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="ON AIR"/>
+                                        <Setter Property="Foreground" Value="{StaticResource LiveGreenBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveEncodersCount}" Value="0">
+                                                <Setter Property="Text" Value="STANDBY"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- CPU Telemetry -->
+                    <Border Background="#101824" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="CPU " FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding CpuHeader}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- RAM Telemetry -->
+                    <Border Background="#101824" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="RAM " FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding RamHeader}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- GPU Telemetry -->
+                    <Border Background="#101824" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="GPU " FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding GpuHeader}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" MaxWidth="160" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Web Remote Quick Button -->
+                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Web Remote" Command="{Binding OpenWebRemoteCommand}" Padding="8,4" Margin="0,0,6,0" ToolTip="Open Web Remote in browser (http://localhost:8787)"/>
+                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Scan I/O" Command="{Binding RescanHardwareCommand}" Padding="8,4" ToolTip="Rescan physical PCIe capture hardware"/>
+                </StackPanel>
+
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================= -->
+        <!-- 2. MIDDLE AREA (SIDEBAR + MAIN CONTENT VIEWPORT)              -->
+        <!-- ============================================================= -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding SidebarWidth, FallbackValue=220}"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT GLASS SIDEBAR -->
+            <Border Grid.Column="0" Background="{StaticResource GlassSidebarGradient}" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- Sidebar Top Header / Toggle -->
+                    <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="0,0,0,1">
+                        <DockPanel>
+                            <Button Style="{StaticResource WindowCtrlBtn}" Command="{Binding ToggleSidebarCommand}" ToolTip="Toggle Sidebar Expand / Collapse" Width="28" Height="26" DockPanel.Dock="Left">
+                                <Path Data="{StaticResource GeoMenu}" Fill="{StaticResource TextSecondaryBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                            </Button>
+                            <TextBlock Text="NAVIGATION" FontWeight="Bold" FontSize="10" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Navigation Items List -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="6,8,6,8">
+
+                            <!-- 1. Dashboard -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoDashboard}" Fill="{StaticResource AccentBlueBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Dashboard" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 2. Encoder -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Encoder" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoEncoder}" Fill="{StaticResource LiveGreenBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Encoder" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 3. Decoder -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Decoder" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoDecoder}" Fill="{StaticResource WarningAmberBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Decoder" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 4. Multiview -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Multiview" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoMultiview}" Fill="{StaticResource ProgramRedBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Multiview" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 5. Program Return -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Program Return" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoProgramReturn}" Fill="{StaticResource AccentCyanBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Program Return" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 6. Hardware I/O -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Hardware I/O" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoHardware}" Fill="{StaticResource AccentBlueBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Hardware I/O" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 7. Network -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Network" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoNetwork}" Fill="{StaticResource AccentCyanBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Network" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 8. System Monitor -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="System Monitor" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoSystemMonitor}" Fill="{StaticResource LiveGreenBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="System Monitor" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 9. Logs -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Logs" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoLogs}" Fill="{StaticResource TextSecondaryBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Logs" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 10. Settings -->
+                            <Button Style="{StaticResource GlassBtnSecondary}" Command="{Binding NavigateCommand}" CommandParameter="Settings" Margin="0,0,0,4" HorizontalContentAlignment="Left" Padding="8,7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GeoSettings}" Fill="{StaticResource TextSecondaryBrush}" Width="15" Height="15" Stretch="Uniform" Margin="2,0,10,0"/>
+                                    <TextBlock Text="Settings" FontWeight="SemiBold" FontSize="12">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- MAIN CONTENT VIEWPORT -->
+            <Border Grid.Column="1" Padding="20,18,16,14" Background="#070A0F">
+                <ContentControl Content="{Binding CurrentPage}"/>
+            </Border>
+        </Grid>
+
+        <!-- ============================================================= -->
+        <!-- 3. BOTTOM STATUS BAR                                          -->
+        <!-- ============================================================= -->
+        <Border Grid.Row="2" Background="#090E17" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="0,1,0,0" Padding="12,0">
+            <DockPanel LastChildFill="True" VerticalAlignment="Center">
+                <!-- Status Left: Node & Channel counts -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <TextBlock Text="● Node: " FontSize="10" Foreground="{StaticResource LiveGreenBrush}"/>
+                    <TextBlock Text="{Binding NodeServiceStatus}" FontSize="10" FontWeight="SemiBold" Foreground="White" Margin="0,0,16,0"/>
+
+                    <TextBlock Text="Active:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,4,0"/>
+                    <TextBlock Text="{Binding ActiveEncodersCount, StringFormat='{}{0} Encoders'}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding ActiveDecodersCount, StringFormat='{}{0} Decoders'}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource WarningAmberBrush}" Margin="0,0,16,0"/>
+
+                    <TextBlock Text="{Binding NetworkSpeedText}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding DecklinkStatus}" FontSize="10" Foreground="{StaticResource AccentCyanBrush}"/>
+                </StackPanel>
+
+                <!-- Status Right: Clock -->
+                <TextBlock Text="{Binding UtcTime}" FontSize="10" FontFamily="Consolas, Cascadia Code" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================================================= -->
+        <!-- 4. MODAL CHANNEL CONFIG OVERLAY                               -->
+        <!-- ============================================================= -->
+        <Grid Grid.RowSpan="3" Background="#B304070B">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsChannelModalOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Border Style="{StaticResource GlassCardElevated}" Width="560" MaxHeight="680" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="22">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- Modal Title -->
+                        <DockPanel Margin="0,0,0,16">
+                            <TextBlock Text="{Binding ChannelModalTitle}" FontSize="15" FontWeight="Bold" Foreground="White"/>
+                            <Button Style="{StaticResource WindowCloseBtn}" Command="{Binding CloseChannelModalCommand}" HorizontalAlignment="Right" Width="26" Height="26">
+                                <Path Data="{StaticResource GeoClose}" Fill="White" Width="9" Height="9" Stretch="Uniform"/>
+                            </Button>
+                        </DockPanel>
+
+                        <!-- Form Field: Name -->
+                        <TextBlock Text="CHANNEL NAME" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormChanName, Mode=TwoWay}" Margin="0,0,0,12"/>
+
+                        <!-- Form Row: Direction & SRT Mode -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="DIRECTION" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" SelectedIndex="{Binding FormDirectionIndex, Mode=TwoWay}">
+                                    <ComboBoxItem Content="Encoder (Transmit)"/>
+                                    <ComboBoxItem Content="Decoder (Receive)"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="SRT MODE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" SelectedIndex="{Binding FormModeIndex, Mode=TwoWay}">
+                                    <ComboBoxItem Content="Caller (Connect to Target)"/>
+                                    <ComboBoxItem Content="Listener (Wait for Inbound)"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Form Row: Host & Port -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="DESTINATION HOST / IP" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormHost, Mode=TwoWay}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="SRT PORT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormPort, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Form Field: Video Input Device -->
+                        <TextBlock Text="PHYSICAL VIDEO INPUT SOURCE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" ItemsSource="{Binding VideoInputChoices}" SelectedItem="{Binding FormSelectedVideoInput, Mode=TwoWay}" DisplayMemberPath="DisplayName" Margin="0,0,0,12"/>
+
+                        <!-- Form Row: Encoder Engine, Codec & Video Bitrate -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="HARDWARE ENCODER" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" SelectedValue="{Binding FormEncoder, Mode=TwoWay}" SelectedValuePath="Content">
+                                    <ComboBoxItem Content="auto"/>
+                                    <ComboBoxItem Content="nvenc"/>
+                                    <ComboBoxItem Content="qsv"/>
+                                    <ComboBoxItem Content="amf"/>
+                                    <ComboBoxItem Content="cpu"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="3,0,3,0">
+                                <TextBlock Text="VIDEO CODEC" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" SelectedValue="{Binding FormVideoCodec, Mode=TwoWay}" SelectedValuePath="Tag">
+                                    <ComboBoxItem Content="H.264 (AVC)" Tag="h264"/>
+                                    <ComboBoxItem Content="H.265 (HEVC)" Tag="h265"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                                <TextBlock Text="BITRATE (KBPS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormBitrate, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Form Row: Resolution & FPS -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="RESOLUTION" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" SelectedValue="{Binding FormResolution, Mode=TwoWay}" SelectedValuePath="Content">
+                                    <ComboBoxItem Content="Auto (Match Input Source)"/>
+                                    <ComboBoxItem Content="1920x1080"/>
+                                    <ComboBoxItem Content="1280x720"/>
+                                    <ComboBoxItem Content="3840x2160"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="FRAME RATE (FPS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <ComboBox Style="{StaticResource GlassComboBox}" ItemContainerStyle="{StaticResource GlassComboBoxItem}" IsEditable="True" Text="{Binding FormFpsString, Mode=TwoWay}">
+                                    <ComboBoxItem Content="Auto (Match Input Source)"/>
+                                    <ComboBoxItem Content="25"/>
+                                    <ComboBoxItem Content="50"/>
+                                    <ComboBoxItem Content="30"/>
+                                    <ComboBoxItem Content="60"/>
+                                    <ComboBoxItem Content="24"/>
+                                </ComboBox>
+                                <TextBlock Text="* Pilih 'Auto' untuk deteksi otomatis resolusi &amp; FPS input SDI" FontSize="9" Foreground="#38BDF8" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Form Field: Passphrase -->
+                        <TextBlock Text="SRT PASSPHRASE (OPTIONAL AES ENCRYPTION)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding FormPassphrase, Mode=TwoWay}" Margin="0,0,0,18"/>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource GlassBtnSecondary}" Content="Cancel" Command="{Binding CloseChannelModalCommand}" Width="90" Margin="0,0,8,0"/>
+                            <Button Style="{StaticResource GlassBtnPrimary}" Content="Save Channel" Command="{Binding SaveChannelModalCommand}" Width="120"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+    </Grid>
+</Window>

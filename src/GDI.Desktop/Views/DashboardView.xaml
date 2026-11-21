@@ -1,0 +1,222 @@
+<UserControl x:Class="GDI.Desktop.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:GDI.Desktop.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1100">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,10,20">
+
+            <!-- PAGE HEADER -->
+            <DockPanel Margin="0,0,0,16">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="BROADCAST DASHBOARD" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Real-time multi-channel overview, physical hardware status, and core streaming metrics." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Style="{StaticResource GlassBtnPrimary}" Content="+ Add Channel" Command="{Binding AddChannelCommand}" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Refresh" Command="{Binding RefreshChannelsCommand}"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- ROW 1: 3 METRIC GLASS CARDS -->
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CARD 1: SYSTEM OVERVIEW -->
+                <Border Grid.Column="0" Style="{StaticResource GlassCard}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="SYSTEM OVERVIEW" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                            <TextBlock Text="CPU / RAM / GPU" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                        </DockPanel>
+
+                        <!-- CPU Load Bar -->
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="CPU LOAD" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding CpuDetails}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <ProgressBar Height="6" Value="{Binding CpuPercent}" Minimum="0" Maximum="100" Background="#111B29" Foreground="{StaticResource AccentBlueBrush}" BorderThickness="0" Margin="0,0,0,10"/>
+
+                        <!-- RAM Load Bar -->
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="MEMORY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding RamDetails}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <ProgressBar Height="6" Value="{Binding RamPercent}" Minimum="0" Maximum="100" Background="#111B29" Foreground="{StaticResource AccentCyanBrush}" BorderThickness="0" Margin="0,0,0,10"/>
+
+                        <!-- GPU Status -->
+                        <DockPanel>
+                            <TextBlock Text="ACCELERATION" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding GpuStatus}" FontSize="10" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <TextBlock Text="{Binding GpuDetails}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- CARD 2: STREAMING OVERVIEW -->
+                <Border Grid.Column="1" Style="{StaticResource GlassCard}" Margin="4,0,4,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="STREAMING OVERVIEW" FontWeight="Bold" FontSize="11" Foreground="{StaticResource LiveGreenBrush}"/>
+                            <TextBlock Text="SRT TRANSIT" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                        </DockPanel>
+
+                        <Grid Margin="0,4,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="ACTIVE ENCODERS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                <TextBlock Text="{Binding ActiveEncoders}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="ACTIVE DECODERS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                <TextBlock Text="{Binding ActiveDecoders}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource WarningAmberBrush}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <DockPanel Margin="0,4,0,0">
+                            <TextBlock Text="TOTAL AGGREGATE BITRATE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding TotalBitrateText}" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <TextBlock Text="SRT Caller &amp; Listener protocol active with AES-128/256 encryption." FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- CARD 3: HARDWARE OVERVIEW -->
+                <Border Grid.Column="2" Style="{StaticResource GlassCard}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="HARDWARE I/O OVERVIEW" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}"/>
+                            <TextBlock Text="PCIe / SDI" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                        </DockPanel>
+
+                        <StackPanel Margin="0,2,0,8">
+                            <TextBlock Text="BLACKMAGIC DESIGN" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding BmdDeckLinkStatus}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,2,0,8">
+                            <TextBlock Text="AJA VIDEO SYSTEMS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding AjaStatus}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,2,0,0">
+                            <TextBlock Text="MAGEWELL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding MagewellStatus}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ROW 2: ACTIVE CHANNELS TITLE & COUNT -->
+            <DockPanel Margin="0,8,0,10">
+                <TextBlock Text="CONFIGURED BROADCAST CHANNELS" FontSize="13" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="{Binding TotalChannels, StringFormat='{}{0} Channel(s)'}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
+            </DockPanel>
+
+            <!-- CHANNELS GRID (COMPACT GLASS CARDS) -->
+            <ItemsControl ItemsSource="{Binding Channels}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource GlassCard}" Width="335" Margin="0,0,14,14">
+                            <StackPanel>
+                                <!-- Header -->
+                                <DockPanel Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="White"/>
+                                        <Border CornerRadius="3" Padding="4,1" Margin="8,0,0,0" Background="#1A3B5C" BorderBrush="{StaticResource AccentBlueBrush}" BorderThickness="1">
+                                            <TextBlock Text="{Binding DirectionText}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Border CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#223043"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource LiveGreenBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding StateBadge}" FontSize="10" FontWeight="Bold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                            <Setter Property="Foreground" Value="Black"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </DockPanel>
+
+                                <!-- Specs Grid -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,4,6">
+                                        <TextBlock Text="INPUT DEVICE" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding InputDevice}" FontSize="11" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="4,0,0,6">
+                                        <TextBlock Text="CODEC / ENCODER" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding CodecEncoder}" FontSize="11" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,4,0">
+                                        <TextBlock Text="SRT TARGET" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding SrtTarget}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBlueBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="4,0,0,0">
+                                        <TextBlock Text="VIDEO FORMAT" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding Format}" FontSize="11" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- VU Level Meter -->
+                                <ProgressBar Height="4" Value="{Binding VuLevel}" Minimum="0" Maximum="100" Background="#111B29" Foreground="{StaticResource LiveGreenBrush}" BorderThickness="0" Margin="0,0,0,12"/>
+
+                                <!-- Card Action Buttons -->
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource DashLiveStartBtn}" Width="68" Margin="0,0,6,0" Command="{Binding StartCommand}"/>
+                                    <Button Style="{StaticResource DashLiveStopBtn}" Width="68" Margin="0,0,6,0" Command="{Binding StopCommand}"/>
+                                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Restart" Width="68" Margin="0,0,6,0" Command="{Binding RestartCommand}"/>
+                                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Config" Width="68" Command="{Binding ConfigCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

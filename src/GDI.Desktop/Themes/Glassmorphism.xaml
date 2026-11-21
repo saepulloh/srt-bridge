@@ -1,0 +1,563 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================= -->
+    <!-- GDI SRT EMBEDDED NATIVE DESKTOP — MASTER GLASSMORPISM PALETTE     -->
+    <!-- ================================================================= -->
+
+    <!-- Base Canvas & Backgrounds -->
+    <Color x:Key="ColorBgDeep">#070A0F</Color>
+    <Color x:Key="ColorBgMidnight">#0B111A</Color>
+    <Color x:Key="ColorBgPanel">#D90E1724</Color>
+    <Color x:Key="ColorBgPanelLight">#CC162234</Color>
+    <Color x:Key="ColorBgPanelHover">#E61E2E44</Color>
+    <Color x:Key="ColorBorderGlass">#26384F</Color>
+    <Color x:Key="ColorBorderBright">#3D597E</Color>
+    <Color x:Key="ColorAccentBlue">#00A3FF</Color>
+    <Color x:Key="ColorAccentCyan">#06B6D4</Color>
+    <Color x:Key="ColorStatusLive">#10B981</Color>
+    <Color x:Key="ColorStatusProgram">#EF4444</Color>
+    <Color x:Key="ColorStatusWarning">#F59E0B</Color>
+
+    <!-- Solid & Gradient Brushes -->
+    <SolidColorBrush x:Key="BgDeepBrush" Color="{StaticResource ColorBgDeep}"/>
+    <SolidColorBrush x:Key="BgMidnightBrush" Color="{StaticResource ColorBgMidnight}"/>
+    <SolidColorBrush x:Key="GlassPanelBrush" Color="{StaticResource ColorBgPanel}"/>
+    <SolidColorBrush x:Key="GlassPanelLightBrush" Color="{StaticResource ColorBgPanelLight}"/>
+    <SolidColorBrush x:Key="GlassPanelHoverBrush" Color="{StaticResource ColorBgPanelHover}"/>
+    <SolidColorBrush x:Key="GlassBorderBrush" Color="{StaticResource ColorBorderGlass}"/>
+    <SolidColorBrush x:Key="GlassBorderBrightBrush" Color="{StaticResource ColorBorderBright}"/>
+    <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource ColorAccentBlue}"/>
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="{StaticResource ColorAccentCyan}"/>
+
+    <!-- Broadcast Status Tally Brushes -->
+    <SolidColorBrush x:Key="LiveGreenBrush" Color="{StaticResource ColorStatusLive}"/>
+    <SolidColorBrush x:Key="ProgramRedBrush" Color="{StaticResource ColorStatusProgram}"/>
+    <SolidColorBrush x:Key="WarningAmberBrush" Color="{StaticResource ColorStatusWarning}"/>
+    <SolidColorBrush x:Key="MutedGrayBrush" Color="#64748B"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#64748B"/>
+
+    <!-- Modern Broadcast Typography -->
+    <FontFamily x:Key="MasterFontFamily">Segoe UI, Inter, -apple-system, Roboto, Helvetica, Arial, sans-serif</FontFamily>
+
+    <!-- Subtle Glass Linear Gradients -->
+    <LinearGradientBrush x:Key="GlassCardGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#E6101926" Offset="0.0"/>
+        <GradientStop Color="#CC0A111C" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#F2080D15" Offset="0.0"/>
+        <GradientStop Color="#E60D1522" Offset="0.5"/>
+        <GradientStop Color="#F2080D15" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassSidebarGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#F5090F18" Offset="0.0"/>
+        <GradientStop Color="#E6070B13" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassPrimaryBtnGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#00A3FF" Offset="0.0"/>
+        <GradientStop Color="#0077CC" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassSuccessBtnGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#10B981" Offset="0.0"/>
+        <GradientStop Color="#059669" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GlassDangerBtnGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#EF4444" Offset="0.0"/>
+        <GradientStop Color="#DC2626" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Glass Drop Shadows -->
+    <DropShadowEffect x:Key="GlassCardShadow" BlurRadius="16" Direction="270" ShadowDepth="4" Opacity="0.35" Color="#000000"/>
+    <DropShadowEffect x:Key="GlassGlowAccent" BlurRadius="12" Direction="0" ShadowDepth="0" Opacity="0.6" Color="#00A3FF"/>
+    <DropShadowEffect x:Key="GlassGlowLive" BlurRadius="10" Direction="0" ShadowDepth="0" Opacity="0.7" Color="#10B981"/>
+
+    <!-- ================================================================= -->
+    <!-- GLASS CARD STYLES                                                 -->
+    <!-- ================================================================= -->
+    <Style x:Key="GlassCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource GlassCardGradient}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14"/>
+        <Setter Property="Effect" Value="{StaticResource GlassCardShadow}"/>
+    </Style>
+
+    <Style x:Key="GlassCardElevated" TargetType="Border" BasedOn="{StaticResource GlassCard}">
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrightBrush}"/>
+        <Setter Property="Background" Value="#E6131D2D"/>
+    </Style>
+
+    <!-- ================================================================= -->
+    <!-- GLASS BUTTONS                                                     -->
+    <!-- ================================================================= -->
+    <Style x:Key="GlassBtnPrimary" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource GlassPrimaryBtnGradient}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#40A9FF"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#1AB0FF"/>
+                            <Setter TargetName="btnBorder" Property="Effect" Value="{StaticResource GlassGlowAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#0066B3"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GlassBtnSuccess" TargetType="Button" BasedOn="{StaticResource GlassBtnPrimary}">
+        <Setter Property="Background" Value="{StaticResource GlassSuccessBtnGradient}"/>
+        <Setter Property="BorderBrush" Value="#34D399"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#059669"/>
+                            <Setter TargetName="btnBorder" Property="Effect" Value="{StaticResource GlassGlowLive}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#047857"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GlassBtnDanger" TargetType="Button" BasedOn="{StaticResource GlassBtnPrimary}">
+        <Setter Property="Background" Value="{StaticResource GlassDangerBtnGradient}"/>
+        <Setter Property="BorderBrush" Value="#F87171"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#DC2626"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#B91C1C"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GlassBtnSecondary" TargetType="Button">
+        <Setter Property="Background" Value="#BF152132"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#E61E2E44"/>
+                            <Setter TargetName="btnBorder" Property="BorderBrush" Value="{StaticResource GlassBorderBrightBrush}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#0F1722"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Window Title Bar Glass Control Buttons -->
+    <Style x:Key="WindowCtrlBtn" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="#94A3B8"/>
+        <Setter Property="Width" Value="38"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#2A3C52"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#1A2838"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="WindowCloseBtn" TargetType="Button" BasedOn="{StaticResource WindowCtrlBtn}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="btnBorder" Property="Background" Value="#E04550"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================= -->
+    <!-- INPUT CONTROLS (TEXTBOX, COMBOBOX)                               -->
+    <!-- ================================================================= -->
+    <Style x:Key="GlassTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="#E60A1019"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="CaretBrush" Value="{StaticResource AccentBlueBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="txtBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="0" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="txtBorder" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                            <Setter TargetName="txtBorder" Property="Effect" Value="{StaticResource GlassGlowAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="txtBorder" Property="BorderBrush" Value="{StaticResource GlassBorderBrightBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="TextBox" BasedOn="{StaticResource GlassTextBox}"/>
+
+    <!-- ToggleButton for Glass ComboBox -->
+    <ControlTemplate x:Key="GlassComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+        <Border x:Name="templateRoot" 
+                Background="{TemplateBinding Background}" 
+                BorderBrush="{TemplateBinding BorderBrush}" 
+                BorderThickness="{TemplateBinding BorderThickness}" 
+                CornerRadius="5" 
+                SnapsToDevicePixels="true">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="28"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Path x:Name="arrow" 
+                          Data="M 0 0 L 4.5 4.5 L 9 0" 
+                          Stroke="#94A3B8" 
+                          StrokeThickness="1.5" 
+                          HorizontalAlignment="Center" 
+                          VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="true">
+                <Setter TargetName="templateRoot" Property="Background" Value="#1A273A"/>
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource AccentBlueBrush}"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="true">
+                <Setter TargetName="templateRoot" Property="Background" Value="#121C2B"/>
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource AccentBlueBrush}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="templateRoot" Property="Opacity" Value="0.45"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- ComboBoxItem Dark Glass Style -->
+    <Style x:Key="GlassComboBoxItem" TargetType="ComboBoxItem">
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Foreground" Value="#F1F5F9"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="bd" 
+                            Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="0" 
+                            CornerRadius="4" 
+                            Padding="{TemplateBinding Padding}" 
+                            Margin="2,1">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#1E2E44"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#0077CC"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource GlassComboBoxItem}"/>
+
+    <!-- Master Glass ComboBox Style -->
+    <Style x:Key="GlassComboBox" TargetType="ComboBox">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Background" Value="#E60A1019"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                        <ToggleButton x:Name="toggleButton" 
+                                      Background="{TemplateBinding Background}" 
+                                      BorderBrush="{TemplateBinding BorderBrush}" 
+                                      BorderThickness="{TemplateBinding BorderThickness}" 
+                                      ClickMode="Press" 
+                                      Focusable="false" 
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                      Template="{StaticResource GlassComboBoxToggleButtonTemplate}"/>
+                        <ContentPresenter x:Name="contentPresenter" 
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                          Content="{TemplateBinding SelectionBoxItem}" 
+                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" 
+                                          HorizontalAlignment="Left" 
+                                          IsHitTestVisible="false" 
+                                          Margin="{TemplateBinding Padding}" 
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                          VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                        <TextBox x:Name="PART_EditableTextBox" 
+                                 HorizontalAlignment="Left" 
+                                 IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}" 
+                                 Margin="{TemplateBinding Padding}" 
+                                 Style="{StaticResource GlassTextBox}" 
+                                 Visibility="Collapsed" 
+                                 VerticalAlignment="Center"/>
+                        <Popup x:Name="PART_Popup" 
+                               AllowsTransparency="true" 
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                               Placement="Bottom" 
+                               PopupAnimation="Slide">
+                            <Border x:Name="dropDownBorder" 
+                                    Background="#F70A1019" 
+                                    BorderBrush="{StaticResource GlassBorderBrightBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="6" 
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}" 
+                                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}" 
+                                    Padding="4" 
+                                    Effect="{StaticResource GlassCardShadow}" 
+                                    Margin="0,2,0,0">
+                                <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="true">
+                                    <ItemsPresenter x:Name="ItemsPresenter" 
+                                                    KeyboardNavigation.DirectionalNavigation="Contained" 
+                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="false">
+                            <Setter TargetName="dropDownBorder" Property="Height" Value="95"/>
+                        </Trigger>
+                        <Trigger Property="IsGrouping" Value="true">
+                            <Setter Property="ScrollViewer.CanContentScroll" Value="false"/>
+                        </Trigger>
+                        <Trigger Property="IsEditable" Value="true">
+                            <Setter Property="IsTabStop" Value="false"/>
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="contentPresenter" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource GlassBorderBrightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="true">
+                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBox" BasedOn="{StaticResource GlassComboBox}"/>
+
+    <!-- ================================================================= -->
+    <!-- DYNAMIC BROADCAST TRANSMIT & STOP BUTTON STYLES                  -->
+    <!-- ================================================================= -->
+
+    <!-- Encoder View Channel Start Button -->
+    <Style x:Key="ChannelLiveStartBtn" TargetType="Button" BasedOn="{StaticResource GlassBtnSuccess}">
+        <Setter Property="Content" Value="▶ Start Transmit"/>
+        <Setter Property="IsEnabled" Value="True"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                <Setter Property="Content" Value="● TRANSMITTING"/>
+                <Setter Property="IsEnabled" Value="False"/>
+                <Setter Property="Background" Value="#059669"/>
+                <Setter Property="BorderBrush" Value="#34D399"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="Effect" Value="{StaticResource GlassGlowLive}"/>
+                <Setter Property="Opacity" Value="1.0"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Encoder View Channel Stop Button -->
+    <Style x:Key="ChannelLiveStopBtn" TargetType="Button" BasedOn="{StaticResource GlassBtnDanger}">
+        <Setter Property="Content" Value="Stop Transmit"/>
+        <Setter Property="IsEnabled" Value="False"/>
+        <Setter Property="Background" Value="#131C28"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+        <Setter Property="Opacity" Value="0.4"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                <Setter Property="Content" Value="■ Stop Transmit"/>
+                <Setter Property="IsEnabled" Value="True"/>
+                <Setter Property="Background" Value="{StaticResource GlassDangerBtnGradient}"/>
+                <Setter Property="BorderBrush" Value="#F87171"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="Opacity" Value="1.0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Dashboard Channel Start Button -->
+    <Style x:Key="DashLiveStartBtn" TargetType="Button" BasedOn="{StaticResource GlassBtnSuccess}">
+        <Setter Property="Content" Value="Start"/>
+        <Setter Property="IsEnabled" Value="True"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                <Setter Property="Content" Value="● LIVE"/>
+                <Setter Property="IsEnabled" Value="False"/>
+                <Setter Property="Background" Value="#059669"/>
+                <Setter Property="BorderBrush" Value="#34D399"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="Effect" Value="{StaticResource GlassGlowLive}"/>
+                <Setter Property="Opacity" Value="1.0"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Dashboard Channel Stop Button -->
+    <Style x:Key="DashLiveStopBtn" TargetType="Button" BasedOn="{StaticResource GlassBtnDanger}">
+        <Setter Property="Content" Value="Stop"/>
+        <Setter Property="IsEnabled" Value="False"/>
+        <Setter Property="Background" Value="#131C28"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+        <Setter Property="Opacity" Value="0.4"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                <Setter Property="Content" Value="■ Stop"/>
+                <Setter Property="IsEnabled" Value="True"/>
+                <Setter Property="Background" Value="{StaticResource GlassDangerBtnGradient}"/>
+                <Setter Property="BorderBrush" Value="#F87171"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="Opacity" Value="1.0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Glass Monospace Telemetry Block -->
+    <Style x:Key="TechMonospaceText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas, Cascadia Code, Courier New"/>
+        <Setter Property="Foreground" Value="#00A3FF"/>
+        <Setter Property="FontSize" Value="11"/>
+    </Style>
+
+</ResourceDictionary>

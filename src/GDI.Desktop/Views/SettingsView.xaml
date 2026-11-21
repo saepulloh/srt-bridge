@@ -1,0 +1,82 @@
+<UserControl x:Class="GDI.Desktop.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:GDI.Desktop.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1100">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,10,20" MaxWidth="720" HorizontalAlignment="Left">
+
+            <!-- PAGE HEADER -->
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="APPLICATION SETTINGS &amp; SECURITY" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="Configure node security, default streaming parameters, broadcast theme, and storage directories." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- GENERAL CONFIG GLASS CARD -->
+            <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="NODE PARAMETERS &amp; LIMITS" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AccentBlueBrush}" Margin="0,0,0,14"/>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="MAXIMUM ACTIVE CHANNEL SLOTS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding ChannelLimit, Mode=TwoWay}"/>
+                            <TextBlock Text="Allowed range: 1 - 32 channels" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="DEFAULT SRT LATENCY (MS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding DefaultLatency, Mode=TwoWay}"/>
+                            <TextBlock Text="Default RTT buffer multiplier (e.g. 250ms)" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="NODE API AUTHENTICATION TOKEN" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                    <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding NodeApiToken, Mode=TwoWay}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Token is protected with Windows DPAPI encryption in ProgramData/GDI/SRT Embedded/security." FontSize="9" Foreground="{StaticResource TextMutedBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- APPEARANCE & TYPOGRAPHY GLASS CARD -->
+            <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="THEME &amp; TYPOGRAPHY STYLE" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,14"/>
+
+                    <TextBlock Text="ACTIVE VISUAL PALETTE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                    <ComboBox Style="{StaticResource GlassComboBox}" ItemsSource="{Binding AvailableThemes}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="Default is Dark Glass (optimized for low-fatigue broadcast control room environments)." FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,14"/>
+
+                    <TextBlock Text="UI FONT FAMILY (PEMILIHAN FONT)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                    <ComboBox Style="{StaticResource GlassComboBox}" ItemsSource="{Binding AvailableFonts}" SelectedItem="{Binding SelectedFont, Mode=TwoWay}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="Pilih font antarmuka broadcast (Segoe UI, Inter, Bahnschrift, Roboto, Consolas, Arial) untuk kenyamanan operator." FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- STORAGE PATHS GLASS CARD -->
+            <Border Style="{StaticResource GlassCard}" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="STORAGE &amp; CONFIGURATION DIRECTORIES" FontWeight="Bold" FontSize="12" Foreground="White" Margin="0,0,0,14"/>
+
+                    <TextBlock Text="CONFIGURATION DIRECTORY" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="{Binding ConfigPath}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}" Margin="0,2,0,10"/>
+
+                    <TextBlock Text="LOGS DIRECTORY" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}"/>
+                    <TextBlock Text="{Binding LogsPath}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}" Margin="0,2,0,14"/>
+
+                    <Button Style="{StaticResource GlassBtnSecondary}" Content="Open ProgramData Folder" Command="{Binding OpenConfigFolderCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <!-- SAVE BUTTON -->
+            <Button Style="{StaticResource GlassBtnPrimary}" Content="Save All Settings" Command="{Binding SaveSettingsCommand}" Width="160" Height="36" HorizontalAlignment="Left"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

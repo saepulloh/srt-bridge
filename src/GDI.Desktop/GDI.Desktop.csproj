@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\GDI.Core\GDI.Core.csproj" />
+    <ProjectReference Include="..\GDI.Hardware\GDI.Hardware.csproj" />
+    <ProjectReference Include="..\GDI.SRT.Engine\GDI.SRT.Engine.csproj" />
+    <ProjectReference Include="..\GDI.Encoder\GDI.Encoder.csproj" />
+    <ProjectReference Include="..\GDI.Decoder\GDI.Decoder.csproj" />
+    <ProjectReference Include="..\GDI.Multiview\GDI.Multiview.csproj" />
+    <ProjectReference Include="..\GDI.ProgramReturn\GDI.ProgramReturn.csproj" />
+    <ProjectReference Include="..\GDI.Network\GDI.Network.csproj" />
+    <ProjectReference Include="..\GDI.Node\GDI.Node.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <StartupObject>GDI.Desktop.Program</StartupObject>
+  </PropertyGroup>
+
+</Project>

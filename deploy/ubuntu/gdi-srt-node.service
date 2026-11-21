@@ -1,0 +1,28 @@
+[Unit]
+Description=GDI SRT Embedded Broadcast Node Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gdi-srt-embedded
+ExecStart=/opt/gdi-srt-embedded/GDI.Node
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=10
+LimitNOFILE=65536
+
+# Hardening
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=true
+
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=GDI_Urls=http://0.0.0.0:8787
+Environment=GDI_ConfigDir=/etc/gdi/config
+Environment=GDI_VaultPath=/etc/gdi/security/vault.dat
+
+[Install]
+WantedBy=multi-user.target

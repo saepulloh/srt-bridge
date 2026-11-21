@@ -1,0 +1,152 @@
+<UserControl x:Class="GDI.Desktop.Views.ProgramReturnView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:GDI.Desktop.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1100">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,10,20">
+
+            <!-- PAGE HEADER -->
+            <DockPanel Margin="0,0,0,16">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="PROGRAM RETURN TRANSMISSION" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Dedicated Studio ➔ Venue low-latency video feed for on-stage confidence monitors and tally return." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border CornerRadius="4" Padding="10,4" Background="#111B29" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                        <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource AccentCyanBrush}"/>
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- FLOW DIAGRAM BANNER -->
+            <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" Padding="12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="STUDIO PROGRAM SOURCE" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentBlueBrush}"/>
+                        <TextBlock Text="Master PGM Output (DirectShow / DeckLink)" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1" Text="➔" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                    <Border Grid.Column="2" Background="#0C1522" CornerRadius="4" Padding="10,6" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔒 SRT TRANSPORT (Caller / Listener · AES-128)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource LiveGreenBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Grid.Column="3" Text="➔" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Text="VENUE RETURN MONITOR" FontWeight="Bold" FontSize="11" Foreground="{StaticResource WarningAmberBrush}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="Stage Display / SDI Playout" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- TWO COLUMNS: STUDIO SEND & VENUE RECEIVE -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT COLUMN: STUDIO SEND CONFIG -->
+                <Border Grid.Column="0" Style="{StaticResource GlassCard}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="STUDIO TRANSMITTER CONFIGURATION" FontWeight="Bold" FontSize="13" Foreground="White" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="PROGRAM SOURCE DEVICE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.VideoDevice, Mode=TwoWay}" Margin="0,0,0,12"/>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="DESTINATION HOST / IP" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.Host, Mode=TwoWay}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="SRT PORT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.Port, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="BITRATE (KBPS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.BitrateKbps, Mode=TwoWay}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="LATENCY (MS)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.LatencyMs, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="PASSPHRASE (OPTIONAL AES ENCRYPTION)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                        <TextBox Style="{StaticResource GlassTextBox}" Text="{Binding Config.Passphrase, Mode=TwoWay}" Margin="0,0,0,18"/>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource GlassBtnSuccess}" Content="Start Transmission" Width="140" Margin="0,0,10,0" Command="{Binding StartReturnCommand}"/>
+                            <Button Style="{StaticResource GlassBtnDanger}" Content="Stop" Width="90" Command="{Binding StopReturnCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- RIGHT COLUMN: VENUE RECEIVE & PLAYOUT -->
+                <Border Grid.Column="1" Style="{StaticResource GlassCard}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="VENUE RECEIVER &amp; PLAYOUT ROUTING" FontWeight="Bold" FontSize="13" Foreground="White" Margin="0,0,0,14"/>
+
+                        <!-- Simulated Return Preview Screen -->
+                        <Border Background="#06090E" CornerRadius="6" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1" Height="170" Margin="0,0,0,14">
+                            <Grid>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="PROGRAM RETURN VIEWPORT" FontWeight="Bold" FontSize="12" Foreground="White" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="1080p60 Low-Latency Broadcast Playout" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    <TextBlock Text="ROUTED TO BLACKMAGIC SDI OUT 3" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Text="DISPLAY MONITOR OUTPUT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="Monitor 2 (Stage Left)" IsReadOnly="True"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                <TextBlock Text="PHYSICAL SDI ROUTE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource GlassTextBox}" Text="DeckLink Duo 2 (SDI Out 3)" IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Confidence monitor delivers real-time return program to talent and production crew with under 120ms total latency." FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
