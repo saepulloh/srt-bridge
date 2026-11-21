@@ -206,24 +206,10 @@ public static class DeckLinkPlayoutEngine
                 return;
             }
 
-            hr = buf.StartAccess(3 /* bmdBufferAccessReadWrite */);
-            if (hr != 0)
-            {
-                logAction?.Invoke($"[SDI PLAYOUT] StartAccess failed (hr=0x{hr:X8}).");
-                return;
-            }
-
-            hr = buf.GetBytes(out var pBuffer);
-            if (hr != 0 || pBuffer == IntPtr.Zero)
-            {
-                buf.EndAccess();
-                logAction?.Invoke($"[SDI PLAYOUT] GetBytes failed (hr=0x{hr:X8}).");
-                return;
-            }
-
             logAction?.Invoke($"[SDI PLAYOUT] Active: Transmitting SDI out '{targetDeviceName}' ({width}x{height} @ {fps} fps UYVY).");
 
             byte[] readBuffer = new byte[frameSize];
+            long frameCount = 0;
 
             while (!ct.IsCancellationRequested)
             {
@@ -233,7 +219,7 @@ public static class DeckLinkPlayoutEngine
                     int read = await rawInputStream.ReadAsync(readBuffer.AsMemory(totalRead, frameSize - totalRead), ct).ConfigureAwait(false);
                     if (read == 0)
                     {
-                        // End of stream
+                        // End of stream or process closed
                         break;
                     }
                     totalRead += read;
@@ -244,14 +230,21 @@ public static class DeckLinkPlayoutEngine
                     break;
                 }
 
-                // Copy raw frame directly into DeckLink frame buffer
-                Marshal.Copy(readBuffer, 0, pBuffer, frameSize);
+                // Safely lock buffer for CPU write, copy raw frame data, then end access before presentation
+                int accessHr = buf.StartAccess(3 /* bmdBufferAccessReadWrite */);
+                if (accessHr == 0)
+                {
+                    if (buf.GetBytes(out var pBuffer) == 0 && pBuffer != IntPtr.Zero)
+                    {
+                        Marshal.Copy(readBuffer, 0, pBuffer, frameSize);
+                    }
+                    buf.EndAccess();
+                }
 
-                // Synchronously display frame through SDI port
+                // Synchronously present frame to SDI port without holding CPU buffer locks
                 output.DisplayVideoFrameSync(frame);
+                frameCount++;
             }
-
-            buf.EndAccess();
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)

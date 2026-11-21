@@ -112,15 +112,17 @@ public sealed class DecoderEngine : IDecoderEngine
 
                 psi.ArgumentList.Add("-hide_banner");
                 psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("warning");
+                psi.ArgumentList.Add("-stats");
+                psi.ArgumentList.Add("-stats_period"); psi.ArgumentList.Add("1");
                 psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
                 psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
                 psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
                 psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
                 psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
 
-                // Complex filter splits video into UYVY stream for SDI playout and JPEG stream for Multiview
+                // Complex filter splits video into UYVY stream for SDI playout (matching exact target FPS) and JPEG stream for Multiview
                 psi.ArgumentList.Add("-filter_complex");
-                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]format=uyvy422,scale={targetWidth}:{targetHeight}[rawout];[prev]fps=15,scale=640:360[prevout]");
+                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps={targetFps},format=uyvy422,scale={targetWidth}:{targetHeight}[rawout];[prev]fps=15,scale=640:360[prevout]");
 
                 // Output 1: stdout raw video for DeckLink
                 psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
