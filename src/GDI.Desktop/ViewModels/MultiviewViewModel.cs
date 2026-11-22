@@ -184,42 +184,49 @@ public sealed class MultiviewTileItem : ViewModelBase
                 _writeableBitmap.Lock();
                 IntPtr backBuf = _writeableBitmap.BackBuffer;
 
-                if (frame.PixelFormat == "UYVY")
+                bool isUyvy = string.Equals(frame.PixelFormat, "UYVY", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(frame.PixelFormat, "uyvy422", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(frame.PixelFormat, "2vuy", StringComparison.OrdinalIgnoreCase);
+
+                if (isUyvy)
                 {
                     unsafe
                     {
-                        byte* pSrc = (byte*)System.Runtime.InteropServices.Marshal.UnsafeAddrOfPinnedArrayElement(frame.Data, 0);
-                        byte* pDst = (byte*)backBuf.ToPointer();
-                        int pixels = w * h;
-                        int pairs = pixels / 2;
-
-                        for (int i = 0; i < pairs; i++)
+                        fixed (byte* pSrcBase = frame.Data)
                         {
-                            int u = pSrc[0] - 128;
-                            int y0 = pSrc[1] - 16;
-                            int v = pSrc[2] - 128;
-                            int y1 = pSrc[3] - 16;
-                            pSrc += 4;
+                            byte* pSrc = pSrcBase;
+                            byte* pDst = (byte*)backBuf.ToPointer();
+                            int pixels = w * h;
+                            int pairs = Math.Min(pixels / 2, frame.Data.Length / 4);
 
-                            int r0 = Math.Clamp((298 * y0 + 409 * v + 128) >> 8, 0, 255);
-                            int g0 = Math.Clamp((298 * y0 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-                            int b0 = Math.Clamp((298 * y0 + 516 * u + 128) >> 8, 0, 255);
+                            for (int i = 0; i < pairs; i++)
+                            {
+                                int u = pSrc[0] - 128;
+                                int y0 = pSrc[1] - 16;
+                                int v = pSrc[2] - 128;
+                                int y1 = pSrc[3] - 16;
+                                pSrc += 4;
 
-                            pDst[0] = (byte)b0;
-                            pDst[1] = (byte)g0;
-                            pDst[2] = (byte)r0;
-                            pDst[3] = 255;
-                            pDst += 4;
+                                int r0 = Math.Clamp((298 * y0 + 409 * v + 128) >> 8, 0, 255);
+                                int g0 = Math.Clamp((298 * y0 - 100 * u - 208 * v + 128) >> 8, 0, 255);
+                                int b0 = Math.Clamp((298 * y0 + 516 * u + 128) >> 8, 0, 255);
 
-                            int r1 = Math.Clamp((298 * y1 + 409 * v + 128) >> 8, 0, 255);
-                            int g1 = Math.Clamp((298 * y1 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-                            int b1 = Math.Clamp((298 * y1 + 516 * u + 128) >> 8, 0, 255);
+                                pDst[0] = (byte)b0;
+                                pDst[1] = (byte)g0;
+                                pDst[2] = (byte)r0;
+                                pDst[3] = 255;
+                                pDst += 4;
 
-                            pDst[0] = (byte)b1;
-                            pDst[1] = (byte)g1;
-                            pDst[2] = (byte)r1;
-                            pDst[3] = 255;
-                            pDst += 4;
+                                int r1 = Math.Clamp((298 * y1 + 409 * v + 128) >> 8, 0, 255);
+                                int g1 = Math.Clamp((298 * y1 - 100 * u - 208 * v + 128) >> 8, 0, 255);
+                                int b1 = Math.Clamp((298 * y1 + 516 * u + 128) >> 8, 0, 255);
+
+                                pDst[0] = (byte)b1;
+                                pDst[1] = (byte)g1;
+                                pDst[2] = (byte)r1;
+                                pDst[3] = 255;
+                                pDst += 4;
+                            }
                         }
                     }
                 }
@@ -353,6 +360,18 @@ public sealed class MultiviewTileItem : ViewModelBase
             if (!HasFrame)
             {
                 RefreshFrame();
+            }
+
+            if (AssignedChannelId.HasValue && _main != null)
+            {
+                var m = _main.ChannelManager.GetMetrics(AssignedChannelId.Value);
+                _tile.AudioLevelLeftDb = m.AudioLevelLeftDb;
+                _tile.AudioLevelRightDb = m.AudioLevelRightDb;
+                _tile.AudioPeakHoldLeftDb = m.AudioPeakHoldLeftDb;
+                _tile.AudioPeakHoldRightDb = m.AudioPeakHoldRightDb;
+                _tile.IsAudioClippingLeft = m.IsAudioClippingLeft;
+                _tile.IsAudioClippingRight = m.IsAudioClippingRight;
+                _tile.IsAudioSilent = m.IsAudioSilent;
             }
 
             float leftDb = _tile.AudioLevelLeftDb;

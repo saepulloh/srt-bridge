@@ -13,10 +13,10 @@ public static class SrtMetricsParser
     private static readonly Regex SpeedRegex = new(@"speed=\s*([0-9\.]+)x", RegexOptions.Compiled);
 
     // Audio metering regexes for FFmpeg astats / ametadata
-    private static readonly Regex Rms1Regex = new(@"astats\.1\.RMS_level=([0-9\.\-]+)", RegexOptions.Compiled);
-    private static readonly Regex Rms2Regex = new(@"astats\.2\.RMS_level=([0-9\.\-]+)", RegexOptions.Compiled);
-    private static readonly Regex Peak1Regex = new(@"astats\.1\.Peak_level=([0-9\.\-]+)", RegexOptions.Compiled);
-    private static readonly Regex Peak2Regex = new(@"astats\.2\.Peak_level=([0-9\.\-]+)", RegexOptions.Compiled);
+    private static readonly Regex Rms1Regex = new(@"astats\.1\.RMS_level=([0-9\.\-]+|-?inf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex Rms2Regex = new(@"astats\.2\.RMS_level=([0-9\.\-]+|-?inf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex Peak1Regex = new(@"astats\.1\.Peak_level=([0-9\.\-]+|-?inf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex Peak2Regex = new(@"astats\.2\.Peak_level=([0-9\.\-]+|-?inf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     // Hardware decoder/encoder detection regexes
     private static readonly Regex HwaccelRegex = new(@"hwaccel\s+(\w+)|Selected\s+hwaccel\s+(\w+)|(cuvid|nvdec|qsv|d3d11va|videotoolbox|amf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -52,23 +52,30 @@ public static class SrtMetricsParser
 
         // Parse Real Audio Metering Levels from astats
         var r1 = Rms1Regex.Match(line);
-        if (r1.Success && float.TryParse(r1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var rmsL))
+        if (r1.Success)
         {
+            float rmsL = float.TryParse(r1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
+            if (float.IsNegativeInfinity(rmsL) || float.IsNaN(rmsL)) rmsL = -60f;
             metrics.RmsLeftDb = Math.Clamp(rmsL, -60f, 0f);
             metrics.AudioLevelLeftDb = metrics.RmsLeftDb;
         }
 
         var r2 = Rms2Regex.Match(line);
-        if (r2.Success && float.TryParse(r2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var rmsR))
+        if (r2.Success)
         {
+            float rmsR = float.TryParse(r2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
+            if (float.IsNegativeInfinity(rmsR) || float.IsNaN(rmsR)) rmsR = -60f;
             metrics.RmsRightDb = Math.Clamp(rmsR, -60f, 0f);
             metrics.AudioLevelRightDb = metrics.RmsRightDb;
         }
 
         var p1 = Peak1Regex.Match(line);
-        if (p1.Success && float.TryParse(p1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var peakL))
+        if (p1.Success)
         {
-            metrics.PeakLeftDb = Math.Clamp(peakL, -60f, 0f);
+            float peakL = float.TryParse(p1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
+            if (float.IsNegativeInfinity(peakL) || float.IsNaN(peakL)) peakL = -60f;
+            peakL = Math.Clamp(peakL, -60f, 0f);
+            metrics.PeakLeftDb = peakL;
             metrics.IsAudioClippingLeft = peakL >= -0.1f;
             if (peakL > metrics.AudioPeakHoldLeftDb)
             {
@@ -77,9 +84,12 @@ public static class SrtMetricsParser
         }
 
         var p2 = Peak2Regex.Match(line);
-        if (p2.Success && float.TryParse(p2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var peakR))
+        if (p2.Success)
         {
-            metrics.PeakRightDb = Math.Clamp(peakR, -60f, 0f);
+            float peakR = float.TryParse(p2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
+            if (float.IsNegativeInfinity(peakR) || float.IsNaN(peakR)) peakR = -60f;
+            peakR = Math.Clamp(peakR, -60f, 0f);
+            metrics.PeakRightDb = peakR;
             metrics.IsAudioClippingRight = peakR >= -0.1f;
             if (peakR > metrics.AudioPeakHoldRightDb)
             {

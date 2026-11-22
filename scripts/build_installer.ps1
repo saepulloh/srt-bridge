@@ -24,7 +24,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $workspaceRoot = Split-Path -Parent $scriptDir
 
 Write-Host "====================================================================" -ForegroundColor Cyan
-Write-Host " GDI SRT EMBEDDED — AUTOMATED MODULE VERIFICATION & INSTALLER BUILD" -ForegroundColor Cyan
+Write-Host " GDI SRT EMBEDDED - AUTOMATED MODULE VERIFICATION AND INSTALLER BUILD" -ForegroundColor Cyan
 Write-Host "====================================================================" -ForegroundColor Cyan
 Write-Host "Workspace Root : $workspaceRoot"
 Write-Host "Build Target   : win-x64 (Self-Contained .NET 8 LTS)"
@@ -87,7 +87,7 @@ Write-Host "  -> FFmpeg binaries verified in $ffmpegBin" -ForegroundColor Green
 # STEP 2: Run Automated Tests Across All Modules
 # -----------------------------------------------------------------------------
 if (-not $SkipTests) {
-    Write-Host "`n[2/6] Running Unit & Integration Tests across all modules..." -ForegroundColor Yellow
+    Write-Host "`n[2/6] Running Unit and Integration Tests across all modules..." -ForegroundColor Yellow
     $slnPath = Join-Path $workspaceRoot "GDI-SRT-Embedded.sln"
     & dotnet test $slnPath -c $Configuration --nologo --verbosity normal
     if ($LASTEXITCODE -ne 0) {
@@ -185,9 +185,9 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "  -> Inno Setup compiled successfully!" -ForegroundColor Green
 
 # -----------------------------------------------------------------------------
-# STEP 6: Deploy & Verify Output Artifacts
+# STEP 6: Deploy and Verify Output Artifacts
 # -----------------------------------------------------------------------------
-Write-Host "`n[6/6] Finalizing Artifacts & Checksums..." -ForegroundColor Yellow
+Write-Host "`n[6/6] Finalizing Artifacts and Checksums..." -ForegroundColor Yellow
 
 $compiledExe = Join-Path $stagingOutput "GDI-SRT-Embedded-Native-Windows-x64-Setup.exe"
 if (-not (Test-Path $compiledExe)) {
@@ -218,21 +218,21 @@ $sizeMb = [math]::Round($fileItem.Length / 1MB, 2)
 $sw.Stop()
 
 Write-Host "`n====================================================================" -ForegroundColor Green
-Write-Host " BUILD & PACKAGING COMPLETED SUCCESSFULLY in $($sw.Elapsed.ToString('mm\:ss'))" -ForegroundColor Green
+Write-Host " BUILD AND PACKAGING COMPLETED SUCCESSFULLY in $($sw.Elapsed.ToString('mm\:ss'))" -ForegroundColor Green
 Write-Host "====================================================================" -ForegroundColor Green
 Write-Host " Installer File : $destArtifact" -ForegroundColor Cyan
 Write-Host " Root Shortcut  : $destRoot" -ForegroundColor Cyan
-Write-Host " File Size      : $sizeMb MB ($($fileItem.Length.ToString('N0')) bytes)" -ForegroundColor Cyan
+Write-Host " File Size      : $sizeMb MB ($($fileItem.Length) bytes)" -ForegroundColor Cyan
 Write-Host " SHA256 Hash    : $hash" -ForegroundColor Cyan
 Write-Host " Target Arch    : Windows 10/11 x64 (Self-Contained)" -ForegroundColor Cyan
 Write-Host " Modules Built  :" -ForegroundColor Cyan
 Write-Host "   - GDI.Core (Models, Vault, Realtime Distributor, True Audio DSP Meter)"
-Write-Host "   - GDI.Hardware (DeckLink Scheduled Playout, AJA, Magewell, DirectShow)"
+Write-Host "   - GDI.Hardware (DeckLink Synchronous Playout, AJA, Magewell, DirectShow)"
 Write-Host "   - GDI.SRT.Engine (RFC-compliant SRT URLs, Socket Tuning, astats Parser)"
 Write-Host "   - GDI.Encoder (NVENC/QSV/AMF/CPU, bwdif deinterlace, bt709 matrix)"
 Write-Host "   - GDI.Decoder (SRT caller/listener receiver, astats audio analysis)"
 Write-Host "   - GDI.Multiview (1/2/4/6/8/9/16 layout, unsafe WriteableBitmap blit, VU meters)"
-Write-Host "   - GDI.ProgramReturn (Studio Send & Venue Receive pipeline)"
+Write-Host "   - GDI.ProgramReturn (Studio Send and Venue Receive pipeline)"
 Write-Host "   - GDI.Network (NIC detection, real-time Mbps RX/TX calculation)"
 Write-Host "   - GDI.Node (REST API daemon, Web Remote on port 8787)"
 Write-Host "   - GDI.Desktop (Native WPF Obsidian Dark Broadcast Application)"

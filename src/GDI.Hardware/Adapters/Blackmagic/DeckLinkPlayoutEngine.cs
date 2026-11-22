@@ -441,16 +441,6 @@ public static class DeckLinkPlayoutEngine
             byte[] audioBuffer = new byte[3840]; // ~20ms of 48kHz stereo 16-bit (48000 * 2ch * 2bytes / 50 = 3840 bytes)
             long frameCount = 0;
 
-            // Frame timing setup for scheduled playback
-            long timeScale = fps * 1000;
-            long frameDuration = 1000;
-            long streamTime = 0;
-
-            // Pre-roll audio & video queue
-            long completedFrames = 0;
-            var callback = new DeckLinkOutputCallbackHandler(cnt => completedFrames = cnt);
-            output.SetScheduledFrameCompletionCallback(callback);
-
             while (!ct.IsCancellationRequested)
             {
                 // Read exact uncompressed video frame
@@ -499,22 +489,9 @@ public static class DeckLinkPlayoutEngine
                     }
                 }
 
-                // Scheduled presentation: schedule frame with hardware presentation timestamp
-                int schedHr = output.ScheduleVideoFrame(videoFrame, streamTime, frameDuration, timeScale);
-                if (schedHr != 0)
-                {
-                    // Fallback to synchronous display if schedule queue is full or hardware requires direct sync
-                    output.DisplayVideoFrameSync(videoFrame);
-                }
-
+                // Synchronously present frame to SDI port without holding CPU buffer locks
+                output.DisplayVideoFrameSync(videoFrame);
                 frameCount++;
-                streamTime += frameDuration;
-
-                // Start playback after prerolling initial 3 frames
-                if (frameCount == 3)
-                {
-                    output.StartScheduledPlayback(0, timeScale, 1.0);
-                }
             }
         }
         catch (OperationCanceledException) { }
@@ -526,7 +503,6 @@ public static class DeckLinkPlayoutEngine
         {
             try
             {
-                output?.StopScheduledPlayback(0, out _, 1000);
                 output?.DisableAudioOutput();
                 output?.DisableVideoOutput();
             }

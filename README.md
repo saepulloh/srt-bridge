@@ -119,4 +119,4 @@ dotnet run --project src/GDI.Node/GDI.Node.csproj
 ## 🔒 Lisensi & Pengembang
 
 Dikembangkan oleh **Global Data Indonesia (GDI)**.
-Hak Cipta &copy; 2026 PT Global Data Indonesia. Seluruh hak cipta dilindungi undang-undang.
+Hak Cipta &copy; 2026 CV Global Data Indonesia. Seluruh hak cipta dilindungi undang-undang.
