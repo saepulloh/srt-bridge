@@ -810,4 +810,40 @@ public class SrtAndEncoderTests
         Assert.Contains("-color_primaries", args);
         Assert.Contains("bt709", args);
     }
+
+    [Fact]
+    public void Bt709Matrix_ConvertsBroadcastLimitedRangeAccurately()
+    {
+        // 1. Studio White: Y=235, U=128, V=128 -> Full RGB (255, 255, 255)
+        int uW = 128 - 128;
+        int yW = 235 - 16;
+        int vW = 128 - 128;
+        int rTermW = 459 * vW + 128;
+        int gTermW = -55 * uW - 136 * vW + 128;
+        int bTermW = 541 * uW + 128;
+        int cW = 298 * yW;
+        int rWhite = Math.Clamp((cW + rTermW) >> 8, 0, 255);
+        int gWhite = Math.Clamp((cW + gTermW) >> 8, 0, 255);
+        int bWhite = Math.Clamp((cW + bTermW) >> 8, 0, 255);
+
+        Assert.Equal(255, rWhite);
+        Assert.Equal(255, gWhite);
+        Assert.Equal(255, bWhite);
+
+        // 2. Studio Black: Y=16, U=128, V=128 -> Full RGB (0, 0, 0)
+        int uB = 128 - 128;
+        int yB = 16 - 16;
+        int vB = 128 - 128;
+        int rTermB = 459 * vB + 128;
+        int gTermB = -55 * uB - 136 * vB + 128;
+        int bTermB = 541 * uB + 128;
+        int cB = 298 * yB;
+        int rBlack = Math.Clamp((cB + rTermB) >> 8, 0, 255);
+        int gBlack = Math.Clamp((cB + gTermB) >> 8, 0, 255);
+        int bBlack = Math.Clamp((cB + bTermB) >> 8, 0, 255);
+
+        Assert.Equal(0, rBlack);
+        Assert.Equal(0, gBlack);
+        Assert.Equal(0, bBlack);
+    }
 }

@@ -464,12 +464,16 @@ public static class DeckLinkPlayoutEngine
 
             logAction?.Invoke($"[SDI PLAYOUT] Active: Broadcasting SDI out '{targetDeviceName}' ({width}x{height} @ {fps} fps {pixelFormatName}).");
 
-            byte[] videoBuffer = new byte[frameSize];
+            // Ping-pong double-buffer to guarantee zero memory tearing between SDI DMA and Multiview preview
+            byte[][] videoBuffers = [new byte[frameSize], new byte[frameSize]];
+            int vBufIdx = 0;
             byte[] audioBuffer = new byte[3840]; // ~20ms of 48kHz stereo 16-bit (48000 * 2ch * 2bytes / 50 = 3840 bytes)
             long frameCount = 0;
 
             while (!ct.IsCancellationRequested)
             {
+                byte[] videoBuffer = videoBuffers[vBufIdx];
+
                 // Read exact uncompressed video frame
                 int totalRead = 0;
                 while (totalRead < frameSize && !ct.IsCancellationRequested)
@@ -483,6 +487,7 @@ public static class DeckLinkPlayoutEngine
 
                 // Push uncompressed frame to realtime in-memory distributor for preview
                 onFrameDecoded?.Invoke(videoBuffer, width, height, pixelFormatName);
+                vBufIdx ^= 1;
 
                 // Copy uncompressed video frame into DeckLink DMA buffer
                 int accessHr = buf.StartAccess(3 /* bmdBufferAccessReadWrite */);

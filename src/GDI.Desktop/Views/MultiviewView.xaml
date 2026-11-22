@@ -184,7 +184,9 @@
                                             </Grid>
 
                                             <!-- Live Video Frame Image -->
-                                            <Image Source="{Binding FrameSource}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Image Source="{Binding FrameSource}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   RenderOptions.EdgeMode="Aliased">
                                                 <Image.Style>
                                                     <Style TargetType="Image">
                                                         <Setter Property="Visibility" Value="Collapsed"/>

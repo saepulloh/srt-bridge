@@ -223,24 +223,26 @@ public sealed class MultiviewTileItem : ViewModelBase
                                 int y1 = pSrc[3] - 16;
                                 pSrc += 4;
 
-                                int r0 = Math.Clamp((298 * y0 + 409 * v + 128) >> 8, 0, 255);
-                                int g0 = Math.Clamp((298 * y0 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-                                int b0 = Math.Clamp((298 * y0 + 516 * u + 128) >> 8, 0, 255);
+                                // Broadcast standard ITU-R BT.709 HDTV matrix (limited-range YCbCr -> RGB)
+                                int rTerm = 459 * v + 128;
+                                int gTerm = -55 * u - 136 * v + 128;
+                                int bTerm = 541 * u + 128;
 
-                                pDst[0] = (byte)b0;
-                                pDst[1] = (byte)g0;
-                                pDst[2] = (byte)r0;
-                                pDst[3] = 255;
+                                int c0 = 298 * y0;
+                                int r0 = Math.Clamp((c0 + rTerm) >> 8, 0, 255);
+                                int g0 = Math.Clamp((c0 + gTerm) >> 8, 0, 255);
+                                int b0 = Math.Clamp((c0 + bTerm) >> 8, 0, 255);
+
+                                // Direct 32-bit uint write for Bgr32: 0xFF000000 | (r << 16) | (g << 8) | b
+                                *((uint*)pDst) = 0xFF000000u | ((uint)r0 << 16) | ((uint)g0 << 8) | (uint)b0;
                                 pDst += 4;
 
-                                int r1 = Math.Clamp((298 * y1 + 409 * v + 128) >> 8, 0, 255);
-                                int g1 = Math.Clamp((298 * y1 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-                                int b1 = Math.Clamp((298 * y1 + 516 * u + 128) >> 8, 0, 255);
+                                int c1 = 298 * y1;
+                                int r1 = Math.Clamp((c1 + rTerm) >> 8, 0, 255);
+                                int g1 = Math.Clamp((c1 + gTerm) >> 8, 0, 255);
+                                int b1 = Math.Clamp((c1 + bTerm) >> 8, 0, 255);
 
-                                pDst[0] = (byte)b1;
-                                pDst[1] = (byte)g1;
-                                pDst[2] = (byte)r1;
-                                pDst[3] = 255;
+                                *((uint*)pDst) = 0xFF000000u | ((uint)r1 << 16) | ((uint)g1 << 8) | (uint)b1;
                                 pDst += 4;
                             }
                         }

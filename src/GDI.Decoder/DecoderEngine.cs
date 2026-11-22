@@ -19,6 +19,9 @@ public interface IDecoderEngine
 
 public sealed class DecoderEngine : IDecoderEngine
 {
+    private static bool? _cudaDecoderAvailable = null;
+    private static readonly SemaphoreSlim _cudaProbeLock = new(1, 1);
+
     private readonly string _ffplayPath;
     private readonly string _ffmpegPath;
     private readonly BroadcastEventBus _eventBus;
@@ -33,6 +36,52 @@ public sealed class DecoderEngine : IDecoderEngine
         _ffplayPath = ffplayPath;
         _ffmpegPath = ffmpegPath;
         _eventBus = eventBus;
+    }
+
+    private async Task<bool> IsCudaDecoderAvailableAsync()
+    {
+        if (_cudaDecoderAvailable.HasValue) return _cudaDecoderAvailable.Value;
+        await _cudaProbeLock.WaitAsync();
+        try
+        {
+            if (_cudaDecoderAvailable.HasValue) return _cudaDecoderAvailable.Value;
+            var psi = new ProcessStartInfo(_ffmpegPath)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            psi.ArgumentList.Add("-hide_banner");
+            psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("error");
+            psi.ArgumentList.Add("-hwaccel"); psi.ArgumentList.Add("cuda");
+            psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("lavfi");
+            psi.ArgumentList.Add("-i"); psi.ArgumentList.Add("testsrc2=size=320x240:rate=25");
+            psi.ArgumentList.Add("-frames:v"); psi.ArgumentList.Add("1");
+            psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("null");
+            psi.ArgumentList.Add("-");
+
+            using var p = Process.Start(psi);
+            if (p is null)
+            {
+                _cudaDecoderAvailable = false;
+                return false;
+            }
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await p.WaitForExitAsync(cts.Token);
+            _cudaDecoderAvailable = (p.ExitCode == 0);
+            return _cudaDecoderAvailable.Value;
+        }
+        catch
+        {
+            _cudaDecoderAvailable = false;
+            return false;
+        }
+        finally
+        {
+            _cudaProbeLock.Release();
+        }
     }
 
     public bool IsRunning(Guid channelId)
@@ -75,7 +124,11 @@ public sealed class DecoderEngine : IDecoderEngine
             metrics.ChannelName = channel.Name;
             metrics.State = "STARTING";
             metrics.LastError = "";
-            metrics.ActiveHardwareBackend = "Auto Hardware Decode (NVDEC / QSV / D3D11VA)";
+
+            bool hasCuda = await IsCudaDecoderAvailableAsync();
+            metrics.ActiveHardwareBackend = hasCuda
+                ? "NVIDIA NVDEC (CUDA Accelerated)"
+                : "Auto Hardware Decode (NVDEC / QSV / D3D11VA)";
 
             var previewDir = GdiEnvironment.GetPreviewsDirectory();
             try { Directory.CreateDirectory(previewDir); } catch { }
@@ -112,57 +165,59 @@ public sealed class DecoderEngine : IDecoderEngine
             psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("info");
             psi.ArgumentList.Add("-stats");
             psi.ArgumentList.Add("-stats_period"); psi.ArgumentList.Add("1");
-            psi.ArgumentList.Add("-hwaccel"); psi.ArgumentList.Add("auto"); // Safe hardware decode with CPU fallback
+
+            // Hardware decoding: prioritize dedicated NVIDIA RTX 4060 NVDEC via CUDA with safe auto/CPU fallback
+            if (hasCuda)
+            {
+                psi.ArgumentList.Add("-hwaccel"); psi.ArgumentList.Add("cuda");
+            }
+            else
+            {
+                psi.ArgumentList.Add("-hwaccel"); psi.ArgumentList.Add("auto");
+            }
+
             psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
             psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
             psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
             psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
             psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
 
-            // Precision Lanczos scaling + BT.709 color matrix conversion to preserve maximum broadcast sharpness
             string sdiPixFmt = pixelFormat.Equals("v210", StringComparison.OrdinalIgnoreCase) ? "v210" : "uyvy422";
-            string lanczosScale = $"scale={targetWidth}:{targetHeight}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv";
 
-            if (isDecklinkOutput)
+            // Phase D: Eliminate unnecessary scaling filters.
+            // If target is standard broadcast 1920x1080, omit scale filter to retain 1:1 pixel native sharpness.
+            // Only apply precision Lanczos scaling if geometry actually differs from standard 1080p.
+            var rawFilters = new List<string>();
+            if (targetFps > 0)
             {
-                // Complex filter splits video into uncompressed SDI stream for DeckLink and JPEG snapshot for disk/remote API
-                psi.ArgumentList.Add("-filter_complex");
-                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps={targetFps},{lanczosScale},format={sdiPixFmt}[rawout];[prev]fps=5,scale=960:540:flags=bicubic[prevout]");
-
-                // Output 1: stdout raw video for DeckLink SDI Playout
-                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
-                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
-                psi.ArgumentList.Add("pipe:1");
-
-                // Output 2: JPEG snapshot for Web Remote and API clients
-                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
-                psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
-                psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
-                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
-                psi.ArgumentList.Add("-update"); psi.ArgumentList.Add("1");
-                psi.ArgumentList.Add("-y");
-                psi.ArgumentList.Add(previewFile);
+                rawFilters.Add($"fps={targetFps}");
             }
-            else
+            if (targetWidth > 0 && targetHeight > 0 && (targetWidth != 1920 || targetHeight != 1080))
             {
-                // Multiview / Desktop In-Memory Mode: Stream uncompressed 640x360 @ 30 FPS to pipe:1 for zero-stutter preview
-                psi.ArgumentList.Add("-filter_complex");
-                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps=30,scale=640:360:flags=bicubic,format=uyvy422[rawout];[prev]fps=5,scale=640:360:flags=bicubic[prevout]");
-
-                // Output 1: In-memory raw video pipe for RealtimeFrameDistributor
-                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
-                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
-                psi.ArgumentList.Add("pipe:1");
-
-                // Output 2: Live preview snapshot for Web Remote API
-                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
-                psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
-                psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
-                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
-                psi.ArgumentList.Add("-update"); psi.ArgumentList.Add("1");
-                psi.ArgumentList.Add("-y");
-                psi.ArgumentList.Add(previewFile);
+                rawFilters.Add($"scale={targetWidth}:{targetHeight}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv");
             }
+            rawFilters.Add($"format={sdiPixFmt}");
+            string rawFilterStr = string.Join(",", rawFilters);
+
+            // Unified filter complex:
+            // [rawout]: Uncompressed 1080p50 broadcast feed streamed to pipe:1 for SDI playout and Desktop Multiview
+            // [prevout]: Isolated 960x540 @ 5fps snapshot for disk/remote API
+            psi.ArgumentList.Add("-filter_complex");
+            psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]{rawFilterStr}[rawout];[prev]fps=5,scale=960:540:flags=bicubic[prevout]");
+
+            // Output 1: stdout raw video for DeckLink SDI Playout or In-Memory Multiview
+            psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
+            psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
+            psi.ArgumentList.Add("pipe:1");
+
+            // Output 2: JPEG snapshot for Web Remote and API clients
+            psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
+            psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
+            psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
+            psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
+            psi.ArgumentList.Add("-update"); psi.ArgumentList.Add("1");
+            psi.ArgumentList.Add("-y");
+            psi.ArgumentList.Add(previewFile);
 
             // Output 3: Real audio metering stream mapped to null sink via astats
             if (channel.IncludeAudio)
@@ -255,30 +310,37 @@ public sealed class DecoderEngine : IDecoderEngine
             }
             else
             {
-                // In-Memory preview worker: reads uncompressed 640x360 frames (460,800 bytes) and pushes directly to WPF
+                // In-Memory preview worker: reads uncompressed native 1080p broadcast frames and pushes directly to WPF Multiview
                 _ = Task.Run(async () =>
                 {
-                    int prevW = 640;
-                    int prevH = 360;
-                    int frameBytes = prevW * prevH * 2; // UYVY
-                    byte[] buffer = new byte[frameBytes];
+                    int prevW = targetWidth;
+                    int prevH = targetHeight;
+                    int frameBytes = sdiPixFmt.Equals("v210", StringComparison.OrdinalIgnoreCase)
+                        ? ((prevW + 47) / 48) * 128 * prevH
+                        : prevW * prevH * 2; // UYVY 4:2:2
+
+                    // Double-buffering to eliminate 200MB/s LOH GC allocations and prevent memory tearing
+                    byte[][] buffers = [new byte[frameBytes], new byte[frameBytes]];
+                    int bufIdx = 0;
 
                     try
                     {
                         while (!cts.Token.IsCancellationRequested && !process.HasExited)
                         {
+                            byte[] currentBuf = buffers[bufIdx];
                             int total = 0;
                             while (total < frameBytes && !cts.Token.IsCancellationRequested)
                             {
-                                int read = await rawStream.ReadAsync(buffer.AsMemory(total, frameBytes - total), cts.Token);
+                                int read = await rawStream.ReadAsync(currentBuf.AsMemory(total, frameBytes - total), cts.Token);
                                 if (read == 0) break;
                                 total += read;
                             }
 
                             if (total < frameBytes) break;
 
-                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, prevW, prevH, buffer, "UYVY");
-                            metrics.PreviewFps = 30.0;
+                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, prevW, prevH, currentBuf, sdiPixFmt);
+                            metrics.PreviewFps = targetFps;
+                            bufIdx ^= 1;
                         }
                     }
                     catch { }
