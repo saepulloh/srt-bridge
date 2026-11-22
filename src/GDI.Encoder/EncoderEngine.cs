@@ -92,6 +92,20 @@ public sealed class EncoderEngine : IEncoderEngine
             metrics.ChannelName = channel.Name;
             metrics.State = "STARTING";
             metrics.LastError = "";
+            metrics.ActiveHardwareBackend = chosenEncoder switch
+            {
+                "h264_nvenc" => "NVIDIA NVENC (H.264 High Profile)",
+                "hevc_nvenc" => "NVIDIA NVENC (HEVC Main/Main10)",
+                "h264_qsv" => "Intel Quick Sync (H.264 QSV)",
+                "hevc_qsv" => "Intel Quick Sync (HEVC QSV)",
+                "h264_amf" => "AMD AMF (H.264)",
+                "hevc_amf" => "AMD AMF (HEVC)",
+                "h264_videotoolbox" => "Apple VideoToolbox (H.264)",
+                "hevc_videotoolbox" => "Apple VideoToolbox (HEVC)",
+                "libx264" => "CPU Software (x264 High Profile)",
+                "libx265" => "CPU Software (x265 Main Profile)",
+                _ => chosenEncoder
+            };
 
             var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             process.ErrorDataReceived += (_, e) =>
@@ -110,14 +124,6 @@ public sealed class EncoderEngine : IEncoderEngine
                     if (string.IsNullOrEmpty(metrics.LastError) || metrics.CurrentFps > 0)
                     {
                         metrics.State = "STREAMING";
-                        if (channel.IncludeAudio)
-                        {
-                            var time = DateTime.UtcNow.Ticks / 10_000_000.0;
-                            var l = (float)(-15.5 + Math.Sin(time * 3.3 + channel.Id.GetHashCode()) * 5.2);
-                            var r = (float)(-15.5 + Math.Cos(time * 2.9 + channel.Id.GetHashCode()) * 4.8);
-                            metrics.AudioLevelLeftDb = Math.Clamp(l, -45f, -3f);
-                            metrics.AudioLevelRightDb = Math.Clamp(r, -45f, -3f);
-                        }
                     }
                 }
             };
@@ -452,16 +458,18 @@ public sealed class EncoderEngine : IEncoderEngine
             vfList.Add("bwdif=mode=send_frame:parity=auto:deint=interlaced");
         }
 
-        // 2. Geometry scaling: only scale if target differs from input or if input geometry was unprobed
+        // 2. Geometry scaling: broadcast-grade Lanczos scaling with BT.709 color matrix to prevent chroma blur and soft edges
         int inW = overrideWidth ?? (c.Width > 0 ? c.Width : 1920);
         int inH = overrideHeight ?? (c.Height > 0 ? c.Height : 1080);
+        string lanczosScaleFlags = "flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv";
+
         if (c.Width > 0 && c.Height > 0 && (c.Width != inW || c.Height != inH))
         {
-            vfList.Add($"scale={c.Width}:{c.Height}:flags=bicubic");
+            vfList.Add($"scale={c.Width}:{c.Height}:{lanczosScaleFlags}");
         }
         else if (c.Width > 0 && c.Height > 0 && overrideWidth == null)
         {
-            vfList.Add($"scale={c.Width}:{c.Height}:flags=bicubic");
+            vfList.Add($"scale={c.Width}:{c.Height}:{lanczosScaleFlags}");
         }
         if (c.Fps > 0 && overrideFps != null && c.Fps != overrideFps)
         {
@@ -475,22 +483,44 @@ public sealed class EncoderEngine : IEncoderEngine
 
         yield return "-c:v"; yield return encoder;
 
-        // Codec specific broadcast low-latency flags with high-fidelity visual tuning
+        // Quality Profile tuning
+        string profile = !string.IsNullOrWhiteSpace(c.QualityProfile) ? c.QualityProfile : "HighQuality";
         int activeFps = overrideFps ?? (c.Fps > 0 ? c.Fps : 25);
         var gop = activeFps * 2;
+
         if (encoder.EndsWith("_nvenc", StringComparison.Ordinal))
         {
-            yield return "-preset"; yield return "p6"; // High quality (slower preset on Ada Lovelace RTX 4060)
-            yield return "-tune"; yield return "ll";   // Low latency
+            string nvPreset = profile switch
+            {
+                "LowBandwidth" => "p4",
+                "Balanced" => "p5",
+                "MaximumQuality" => "p7",
+                "VisuallyLossless" => "p7",
+                "Lossless" => "p7",
+                _ => "p6"
+            };
+
+            yield return "-preset"; yield return nvPreset;
+
+            if (profile == "Lossless")
+            {
+                yield return "-tune"; yield return "lossless";
+                yield return "-cqp"; yield return "0";
+            }
+            else
+            {
+                yield return "-tune"; yield return "ll";   // Low latency
+                yield return "-rc"; yield return "cbr";
+                yield return "-spatial-aq"; yield return "1"; // Spatial Adaptive Quantization
+                yield return "-temporal-aq"; yield return "1"; // Temporal AQ
+                yield return "-aq-strength"; yield return profile == "MaximumQuality" ? "10" : "8";
+                yield return "-multipass"; yield return "fullres"; // Hardware full-resolution two-pass
+            }
+
             if (encoder.StartsWith("h264", StringComparison.OrdinalIgnoreCase))
             {
-                yield return "-profile:v"; yield return "high"; // High profile enables 8x8 DCT transform for razor-sharp edges
+                yield return "-profile:v"; yield return "high"; // High profile enables 8x8 DCT transform
             }
-            yield return "-rc"; yield return "cbr";
-            yield return "-spatial-aq"; yield return "1"; // Spatial Adaptive Quantization maintains crisp fine textures & faces
-            yield return "-temporal-aq"; yield return "1"; // Temporal AQ avoids macroblocking across moving frames
-            yield return "-aq-strength"; yield return "8";
-            yield return "-multipass"; yield return "qres"; // Two-pass rate control in hardware
             yield return "-coder"; yield return "cabac";   // Advanced entropy coding
             yield return "-g"; yield return gop.ToString();
             yield return "-bf"; yield return "0";
@@ -498,14 +528,14 @@ public sealed class EncoderEngine : IEncoderEngine
         }
         else if (encoder.EndsWith("_qsv", StringComparison.Ordinal))
         {
-            yield return "-preset"; yield return "medium";
+            yield return "-preset"; yield return profile == "MaximumQuality" ? "veryslow" : (profile == "LowBandwidth" ? "fast" : "medium");
             yield return "-look_ahead"; yield return "0";
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
         }
         else if (encoder.EndsWith("_amf", StringComparison.Ordinal))
         {
-            yield return "-quality"; yield return "balanced";
+            yield return "-quality"; yield return profile == "MaximumQuality" ? "quality" : (profile == "LowBandwidth" ? "speed" : "balanced");
             yield return "-rc"; yield return "cbr";
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
@@ -513,13 +543,22 @@ public sealed class EncoderEngine : IEncoderEngine
         else if (encoder.EndsWith("_videotoolbox", StringComparison.Ordinal))
         {
             yield return "-realtime"; yield return "1";
-            yield return "-prio_speed"; yield return "1";
+            yield return "-prio_speed"; yield return profile == "LowBandwidth" ? "1" : "0";
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
         }
         else
         {
-            yield return "-preset"; yield return "veryfast";
+            string x264Preset = profile switch
+            {
+                "LowBandwidth" => "faster",
+                "Balanced" => "fast",
+                "MaximumQuality" => "slow",
+                "VisuallyLossless" => "slower",
+                _ => "veryfast"
+            };
+
+            yield return "-preset"; yield return x264Preset;
             yield return "-tune"; yield return "zerolatency";
             yield return "-profile:v"; yield return "high";
             yield return "-coder"; yield return "cabac";
@@ -536,9 +575,11 @@ public sealed class EncoderEngine : IEncoderEngine
         yield return "-colorspace"; yield return "bt709";
         yield return "-color_range"; yield return "tv";
 
-        // Audio
+        // Audio with live astats metering
         if (c.IncludeAudio)
         {
+            yield return "-af";
+            yield return "astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level:key=lavfi.astats.2.RMS_level:key=lavfi.astats.1.Peak_level:key=lavfi.astats.2.Peak_level";
             yield return "-c:a"; yield return "aac";
             yield return "-b:a"; yield return $"{c.AudioBitrateKbps}k";
             yield return "-ar"; yield return c.AudioSampleRate.ToString();

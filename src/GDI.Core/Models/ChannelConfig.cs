@@ -41,6 +41,9 @@ public sealed class ChannelConfig
     public int Fps { get; set; } = 60;
     public string VideoCodec { get; set; } = "h264"; // h264, h265
     public string Encoder { get; set; } = "auto"; // auto, nvenc, qsv, amf, cpu
+    public string QualityProfile { get; set; } = "HighQuality"; // Balanced, HighQuality, MaximumQuality, VisuallyLossless, LowBandwidth
+    public string ColorSpace { get; set; } = "bt709"; // bt709, bt2020
+    public string PixelFormat { get; set; } = "yuv420p"; // yuv420p, yuv422p, yuv420p10le
     public int VideoBitrateKbps { get; set; } = 8000;
 
     // Audio Configuration

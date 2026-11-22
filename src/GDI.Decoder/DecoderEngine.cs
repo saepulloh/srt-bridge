@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using GDI.Core.Events;
 using GDI.Core.Models;
+using GDI.Core.Services;
 using GDI.Hardware.Adapters.Blackmagic;
 using GDI.SRT.Engine;
 
@@ -25,6 +26,7 @@ public sealed class DecoderEngine : IDecoderEngine
     private readonly ConcurrentDictionary<Guid, ChannelMetrics> _metrics = new();
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _locks = new();
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _playoutCts = new();
+    private readonly ConcurrentDictionary<Guid, AudioMeterEngine> _audioMeters = new();
 
     public DecoderEngine(string ffplayPath, string ffmpegPath, BroadcastEventBus eventBus)
     {
@@ -73,6 +75,7 @@ public sealed class DecoderEngine : IDecoderEngine
             metrics.ChannelName = channel.Name;
             metrics.State = "STARTING";
             metrics.LastError = "";
+            metrics.ActiveHardwareBackend = "Auto Hardware Decode (NVDEC / QSV / D3D11VA)";
 
             var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
             try { Directory.CreateDirectory(previewDir); } catch { }
@@ -95,41 +98,43 @@ public sealed class DecoderEngine : IDecoderEngine
             int targetWidth = channel.Width > 0 ? channel.Width : 1920;
             int targetHeight = channel.Height > 0 ? channel.Height : 1080;
             int targetFps = channel.Fps > 0 ? channel.Fps : 50;
+            string pixelFormat = !string.IsNullOrWhiteSpace(channel.PixelFormat) ? channel.PixelFormat : "UYVY";
 
-            ProcessStartInfo psi;
+            ProcessStartInfo psi = new ProcessStartInfo(_ffmpegPath)
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true, // Stream raw video to DeckLink or In-Memory Multiview
+                CreateNoWindow = true
+            };
+
+            psi.ArgumentList.Add("-hide_banner");
+            psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("info");
+            psi.ArgumentList.Add("-stats");
+            psi.ArgumentList.Add("-stats_period"); psi.ArgumentList.Add("1");
+            psi.ArgumentList.Add("-hwaccel"); psi.ArgumentList.Add("auto"); // Safe hardware decode with CPU fallback
+            psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
+            psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
+            psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
+            psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
+            psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
+
+            // Precision Lanczos scaling + BT.709 color matrix conversion to preserve maximum broadcast sharpness
+            string sdiPixFmt = pixelFormat.Equals("v210", StringComparison.OrdinalIgnoreCase) ? "v210" : "uyvy422";
+            string lanczosScale = $"scale={targetWidth}:{targetHeight}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv";
 
             if (isDecklinkOutput)
             {
-                // Headless FFmpeg: decode SRT stream, output uncompressed UYVY 4:2:2 to stdout for DeckLink SDI,
-                // and simultaneously generate 15 FPS preview JPEG for real-time Multiview
-                psi = new ProcessStartInfo(_ffmpegPath)
-                {
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true, // Stream raw video to DeckLink playout
-                    CreateNoWindow = true // NO POPUP / FULLSCREEN WINDOW
-                };
-
-                psi.ArgumentList.Add("-hide_banner");
-                psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("warning");
-                psi.ArgumentList.Add("-stats");
-                psi.ArgumentList.Add("-stats_period"); psi.ArgumentList.Add("1");
-                psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
-                psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
-                psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
-                psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
-                psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
-
-                // Complex filter splits video into UYVY stream for SDI playout (matching exact target FPS) and JPEG stream for Multiview
+                // Complex filter splits video into uncompressed SDI stream for DeckLink and JPEG snapshot for disk/remote API
                 psi.ArgumentList.Add("-filter_complex");
-                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps={targetFps},format=uyvy422,scale={targetWidth}:{targetHeight}[rawout];[prev]fps=15,scale=640:360[prevout]");
+                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps={targetFps},{lanczosScale},format={sdiPixFmt}[rawout];[prev]fps=5,scale=960:540:flags=bicubic[prevout]");
 
-                // Output 1: stdout raw video for DeckLink
+                // Output 1: stdout raw video for DeckLink SDI Playout
                 psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
                 psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
                 psi.ArgumentList.Add("pipe:1");
 
-                // Output 2: live preview snapshot for Multiview and UI cards
+                // Output 2: JPEG snapshot for Web Remote and API clients
                 psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
                 psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
                 psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
@@ -140,27 +145,17 @@ public sealed class DecoderEngine : IDecoderEngine
             }
             else
             {
-                // Headless FFmpeg decoder for Multiview / Desktop preview (NO popup window)
-                psi = new ProcessStartInfo(_ffmpegPath)
-                {
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true // NO POPUP / FULLSCREEN WINDOW
-                };
+                // Multiview / Desktop In-Memory Mode: Stream uncompressed 640x360 @ 30 FPS to pipe:1 for zero-stutter preview
+                psi.ArgumentList.Add("-filter_complex");
+                psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]fps=30,scale=640:360:flags=bicubic,format=uyvy422[rawout];[prev]fps=5,scale=640:360:flags=bicubic[prevout]");
 
-                psi.ArgumentList.Add("-hide_banner");
-                psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("warning");
-                psi.ArgumentList.Add("-fflags"); psi.ArgumentList.Add("nobuffer");
-                psi.ArgumentList.Add("-flags"); psi.ArgumentList.Add("low_delay");
-                psi.ArgumentList.Add("-analyzeduration"); psi.ArgumentList.Add("100000");
-                psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
-                psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
+                // Output 1: In-memory raw video pipe for RealtimeFrameDistributor
+                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[rawout]");
+                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("rawvideo");
+                psi.ArgumentList.Add("pipe:1");
 
-                // Live preview snapshot for Multiview and Decoder cards (15 FPS smooth)
-                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("0:v:0");
-                psi.ArgumentList.Add("-an");
-                psi.ArgumentList.Add("-vf"); psi.ArgumentList.Add("fps=15,scale=640:360");
+                // Output 2: Live preview snapshot for Web Remote API
+                psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("[prevout]");
                 psi.ArgumentList.Add("-c:v"); psi.ArgumentList.Add("mjpeg");
                 psi.ArgumentList.Add("-q:v"); psi.ArgumentList.Add("3");
                 psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("image2");
@@ -169,7 +164,16 @@ public sealed class DecoderEngine : IDecoderEngine
                 psi.ArgumentList.Add(previewFile);
             }
 
+            // Real audio metering filter on stderr via astats
+            if (channel.IncludeAudio)
+            {
+                psi.ArgumentList.Add("-af");
+                psi.ArgumentList.Add("astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level:key=lavfi.astats.2.RMS_level:key=lavfi.astats.1.Peak_level:key=lavfi.astats.2.Peak_level");
+            }
+
             var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            var audioMeter = _audioMeters.GetOrAdd(channel.Id, _ => new AudioMeterEngine());
+
             process.ErrorDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrWhiteSpace(e.Data))
@@ -181,16 +185,6 @@ public sealed class DecoderEngine : IDecoderEngine
                     }
                     metrics.State = "RECEIVING";
                     SrtMetricsParser.ParseProgressLine(e.Data, metrics);
-
-                    // Update live audio meter levels for active receiver
-                    if (channel.IncludeAudio)
-                    {
-                        var time = DateTime.UtcNow.Ticks / 10_000_000.0;
-                        var l = (float)(-16.0 + Math.Sin(time * 3.1 + channel.Id.GetHashCode()) * 5.5);
-                        var r = (float)(-16.0 + Math.Cos(time * 2.7 + channel.Id.GetHashCode()) * 5.0);
-                        metrics.AudioLevelLeftDb = Math.Clamp(l, -45f, -3f);
-                        metrics.AudioLevelRightDb = Math.Clamp(r, -45f, -3f);
-                    }
                 }
             };
 
@@ -199,6 +193,9 @@ public sealed class DecoderEngine : IDecoderEngine
                 metrics.State = "STOPPED";
                 metrics.AudioLevelLeftDb = -60f;
                 metrics.AudioLevelRightDb = -60f;
+                metrics.AudioPeakHoldLeftDb = -60f;
+                metrics.AudioPeakHoldRightDb = -60f;
+                metrics.IsAudioSilent = true;
                 _processes.TryRemove(channel.Id, out _);
 
                 if (_playoutCts.TryRemove(channel.Id, out var cts))
@@ -218,31 +215,77 @@ public sealed class DecoderEngine : IDecoderEngine
 
             process.BeginErrorReadLine();
 
+            var cts = new CancellationTokenSource();
+            _playoutCts[channel.Id] = cts;
+            var rawStream = process.StandardOutput.BaseStream;
+
             if (isDecklinkOutput)
             {
-                var cts = new CancellationTokenSource();
-                _playoutCts[channel.Id] = cts;
-                var rawStream = process.StandardOutput.BaseStream;
-
                 _ = Task.Run(async () =>
                 {
-                    _eventBus.Publish($"[SDI DECODER] Initiating DeckLink SDI playout on Port {targetPort} ({targetWidth}x{targetHeight} @ {targetFps}p)...");
+                    _eventBus.Publish($"[SDI DECODER] Initiating DeckLink SDI scheduled playout on Port {targetPort} ({targetWidth}x{targetHeight} @ {targetFps}p {sdiPixFmt})...");
                     await DeckLinkPlayoutEngine.PlayRawFramesAsync(
                         targetPort, targetWidth, targetHeight, targetFps,
-                        rawStream, cts.Token,
-                        msg => _eventBus.Publish(msg)
+                        rawStream, null, cts.Token,
+                        msg => _eventBus.Publish(msg),
+                        pixelFormatName: sdiPixFmt,
+                        onFrameDecoded: (buf, w, h, fmt) =>
+                        {
+                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, w, h, buf, fmt);
+                            metrics.PreviewFps = targetFps;
+                        },
+                        onAudioSamples: pcm =>
+                        {
+                            var state = audioMeter.ProcessPcm16Stereo(pcm);
+                            metrics.AudioLevelLeftDb = state.RmsLeftDb;
+                            metrics.AudioLevelRightDb = state.RmsRightDb;
+                            metrics.PeakLeftDb = state.PeakLeftDb;
+                            metrics.PeakRightDb = state.PeakRightDb;
+                            metrics.AudioPeakHoldLeftDb = state.PeakHoldLeftDb;
+                            metrics.AudioPeakHoldRightDb = state.PeakHoldRightDb;
+                            metrics.IsAudioClippingLeft = state.IsClippingLeft;
+                            metrics.IsAudioClippingRight = state.IsClippingRight;
+                            metrics.IsAudioSilent = state.IsSilent;
+                        }
                     );
                 });
             }
             else
             {
-                process.BeginOutputReadLine();
+                // In-Memory preview worker: reads uncompressed 640x360 frames (460,800 bytes) and pushes directly to WPF
+                _ = Task.Run(async () =>
+                {
+                    int prevW = 640;
+                    int prevH = 360;
+                    int frameBytes = prevW * prevH * 2; // UYVY
+                    byte[] buffer = new byte[frameBytes];
+
+                    try
+                    {
+                        while (!cts.Token.IsCancellationRequested && !process.HasExited)
+                        {
+                            int total = 0;
+                            while (total < frameBytes && !cts.Token.IsCancellationRequested)
+                            {
+                                int read = await rawStream.ReadAsync(buffer.AsMemory(total, frameBytes - total), cts.Token);
+                                if (read == 0) break;
+                                total += read;
+                            }
+
+                            if (total < frameBytes) break;
+
+                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, prevW, prevH, buffer, "UYVY");
+                            metrics.PreviewFps = 30.0;
+                        }
+                    }
+                    catch { }
+                });
             }
 
             _processes[channel.Id] = process;
             metrics.State = "RECEIVING";
 
-            var outputDesc = isDecklinkOutput ? $"DeckLink SDI Port {targetPort}" : "Desktop Multiview";
+            var outputDesc = isDecklinkOutput ? $"DeckLink SDI Port {targetPort} ({sdiPixFmt})" : "In-Memory Realtime Multiview";
             return (true, $"Receiver for '{channel.Name}' started (Port {channel.Port} -> {outputDesc}, PID {process.Id}).");
         }
         catch (Exception ex)
@@ -286,6 +329,9 @@ public sealed class DecoderEngine : IDecoderEngine
             m.State = "STOPPED";
             m.AudioLevelLeftDb = -60f;
             m.AudioLevelRightDb = -60f;
+            m.AudioPeakHoldLeftDb = -60f;
+            m.AudioPeakHoldRightDb = -60f;
+            m.IsAudioSilent = true;
         }
         finally
         {

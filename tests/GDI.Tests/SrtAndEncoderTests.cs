@@ -726,4 +726,88 @@ public class SrtAndEncoderTests
         Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD1080p25, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1920, 1080, 25));
         Assert.Equal(GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.BmdModeHD720p50, GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.ResolveDisplayMode(1280, 720, 50));
     }
+
+    [Fact]
+    public void AudioMeterEngine_ProcessesTruePcmDspCorrectly()
+    {
+        var meter = new GDI.Core.Services.AudioMeterEngine();
+
+        // 1. Test Silent Buffer (all zeros)
+        byte[] silentPcm = new byte[3840]; // ~20ms stereo 48kHz
+        var silentState = meter.ProcessPcm16Stereo(silentPcm);
+        Assert.True(silentState.IsSilent);
+        Assert.True(silentState.PeakLeftDb <= -58f);
+        Assert.False(silentState.IsClippingLeft);
+
+        // 2. Test 0 dBFS Full Scale Square Wave
+        byte[] fullScalePcm = new byte[3840];
+        for (int i = 0; i < fullScalePcm.Length; i += 4)
+        {
+            // Left channel full scale positive (32767 = 0x7FFF)
+            fullScalePcm[i] = 0xFF;
+            fullScalePcm[i + 1] = 0x7F;
+            // Right channel full scale negative (-32768 = 0x8000)
+            fullScalePcm[i + 2] = 0x00;
+            fullScalePcm[i + 3] = 0x80;
+        }
+
+        var fullState = meter.ProcessPcm16Stereo(fullScalePcm);
+        Assert.False(fullState.IsSilent);
+        Assert.True(fullState.IsClippingLeft);
+        Assert.True(fullState.IsClippingRight);
+        Assert.InRange(fullState.PeakLeftDb, -0.05f, 0.05f);
+        Assert.InRange(fullState.PeakRightDb, -0.05f, 0.05f);
+    }
+
+    [Fact]
+    public void DeckLinkPlayoutEngine_GeneratesValidSmpte75ColorBars()
+    {
+        int w = 1920;
+        int h = 1080;
+        var bars = GDI.Hardware.Adapters.Blackmagic.DeckLinkPlayoutEngine.GenerateSmpte75ColorBarsUyvy(w, h);
+        Assert.NotNull(bars);
+        Assert.Equal(w * 2 * h, bars.Length); // 4,147,200 bytes for 1080p UYVY
+    }
+
+    [Fact]
+    public void SrtMetricsParser_ParsesAstatsRealAudioAccurately()
+    {
+        var metrics = new ChannelMetrics();
+        SrtMetricsParser.ParseProgressLine("lavfi.astats.1.RMS_level=-18.452000", metrics);
+        SrtMetricsParser.ParseProgressLine("lavfi.astats.2.RMS_level=-18.452000", metrics);
+        SrtMetricsParser.ParseProgressLine("lavfi.astats.1.Peak_level=-12.040000", metrics);
+        SrtMetricsParser.ParseProgressLine("lavfi.astats.2.Peak_level=-12.040000", metrics);
+
+        Assert.Equal(-18.452000f, metrics.RmsLeftDb, 3);
+        Assert.Equal(-18.452000f, metrics.RmsRightDb, 3);
+        Assert.Equal(-12.040000f, metrics.PeakLeftDb, 3);
+        Assert.Equal(-12.040000f, metrics.PeakRightDb, 3);
+        Assert.False(metrics.IsAudioClippingLeft);
+        Assert.False(metrics.IsAudioSilent);
+    }
+
+    [Fact]
+    public void EncoderEngine_BuildsQualityProfileArgumentsProperly()
+    {
+        var ch = new ChannelConfig
+        {
+            Name = "TEST_MAX_QUAL",
+            VideoBitrateKbps = 25000,
+            AudioBitrateKbps = 320,
+            QualityProfile = "MaximumQuality",
+            Width = 1920,
+            Height = 1080,
+            Fps = 50,
+            IncludeAudio = true,
+            InputBackend = "lavfi"
+        };
+
+        var args = EncoderEngine.BuildEncoderArguments(ch, "h264_nvenc", 1920, 1080, 50).ToList();
+        Assert.Contains("-preset", args);
+        Assert.Contains("p7", args);
+        Assert.Contains("-spatial-aq", args);
+        Assert.Contains("-temporal-aq", args);
+        Assert.Contains("-color_primaries", args);
+        Assert.Contains("bt709", args);
+    }
 }

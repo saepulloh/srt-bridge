@@ -27,6 +27,15 @@ public sealed class MultiviewTile
     public long DroppedFrames { get; set; }
     public float AudioLevelLeftDb { get; set; } = -60f;
     public float AudioLevelRightDb { get; set; } = -60f;
+    public float AudioPeakHoldLeftDb { get; set; } = -60f;
+    public float AudioPeakHoldRightDb { get; set; } = -60f;
+    public bool IsAudioClippingLeft { get; set; }
+    public bool IsAudioClippingRight { get; set; }
+    public bool IsAudioSilent { get; set; } = true;
+    public double InputFps { get; set; }
+    public double DecoderFps { get; set; }
+    public double PreviewFps { get; set; }
+    public string ActiveHardwareBackend { get; set; } = "";
     public bool IsLive { get; set; }
     public string? PreviewImagePath { get; set; }
     public bool HasPreviewImage { get; set; }
@@ -201,6 +210,15 @@ public sealed class MultiviewEngine : IMultiviewEngine
                 tile.DroppedFrames = m.DroppedFrames;
                 tile.AudioLevelLeftDb = m.AudioLevelLeftDb;
                 tile.AudioLevelRightDb = m.AudioLevelRightDb;
+                tile.AudioPeakHoldLeftDb = m.AudioPeakHoldLeftDb;
+                tile.AudioPeakHoldRightDb = m.AudioPeakHoldRightDb;
+                tile.IsAudioClippingLeft = m.IsAudioClippingLeft;
+                tile.IsAudioClippingRight = m.IsAudioClippingRight;
+                tile.IsAudioSilent = m.IsAudioSilent;
+                tile.InputFps = m.InputFps > 0 ? m.InputFps : m.CurrentFps;
+                tile.DecoderFps = m.DecoderFps > 0 ? m.DecoderFps : m.CurrentFps;
+                tile.PreviewFps = m.PreviewFps > 0 ? m.PreviewFps : (tile.IsLive ? ch.Fps : 0);
+                tile.ActiveHardwareBackend = m.ActiveHardwareBackend;
 
                 var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
                 var previewPath = Path.Combine(previewDir, $"{ch.Id:N}.jpg");

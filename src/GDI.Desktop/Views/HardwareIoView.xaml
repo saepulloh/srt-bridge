@@ -154,6 +154,155 @@
                 </Border>
             </Grid>
 
+            <!-- SECTION: EXTERNAL OUTPUT CONTROL PANEL (vMix / OBS Architecture) -->
+            <TextBlock Text="EXTERNAL OUTPUT CONTROL PANEL (DECKLINK SCHEDULED PLAYOUT)" FontSize="13" FontWeight="Bold" Foreground="White" Margin="0,20,0,10"/>
+            <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" Padding="16">
+                <StackPanel>
+                    <!-- Settings Grid: Device, Port, Mode, Pixel Format -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Hardware Device -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="OUTPUT DEVICE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailableDevices}" SelectedItem="{Binding SelectedDevice}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+
+                        <!-- Physical Port -->
+                        <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                            <TextBlock Text="SDI CONNECTOR PORT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+
+                        <!-- Video Mode -->
+                        <StackPanel Grid.Column="2" Margin="8,0,8,0">
+                            <TextBlock Text="BROADCAST VIDEO MODE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailableModes}" SelectedItem="{Binding SelectedMode}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+
+                        <!-- Pixel Format -->
+                        <StackPanel Grid.Column="3" Margin="8,0,0,0">
+                            <TextBlock Text="COLOR / PIXEL PRECISION" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailablePixelFormats}" SelectedItem="{Binding SelectedPixelFormat}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Routing Source, Buffer, and Audio Settings -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Playout Source -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="OUTPUT SOURCE BUS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailableSources}" SelectedItem="{Binding SelectedSource}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+
+                        <!-- Audio Mapping -->
+                        <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                            <TextBlock Text="SDI EMBEDDED AUDIO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AvailableAudioChannels}" SelectedItem="{Binding SelectedAudioChannels}" Style="{StaticResource GlassComboBox}"/>
+                        </StackPanel>
+
+                        <!-- Pre-roll Queue Buffer -->
+                        <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                            <TextBlock Text="PRE-ROLL BUFFER (FRAMES)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding PrerollBufferFrames}" Style="{StaticResource GlassTextBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Playout Action Bar & Live Telemetry -->
+                    <Border Background="#090E17" CornerRadius="6" Padding="12" BorderBrush="#162232" BorderThickness="1">
+                        <DockPanel>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <Button Style="{StaticResource GlassBtnPrimary}" Content="▶ Start External Output" Command="{Binding StartExternalOutputCommand}" IsEnabled="{Binding CanStartExternalOutput}" Margin="0,0,8,0"/>
+                                <Button Style="{StaticResource GlassBtnSecondary}" Content="■ Stop Output" Command="{Binding StopExternalOutputCommand}" IsEnabled="{Binding IsExternalOutputRunning}" Margin="0,0,16,0"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ExternalOutputStatus}" FontWeight="SemiBold" FontSize="11" Foreground="White"/>
+                                    <TextBlock Text="vMix-style scheduled hardware playback · Zero frame jitter" FontSize="9.5" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="FRAMES PLAYED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding FramesPlayed}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource LiveGreenBrush}" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="DROPPED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding DroppedFrames}" FontSize="12" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="HARDWARE FPS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding HardwareOutputFps, StringFormat='{}{0:F1} fps'}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTION: HARDWARE DIAGNOSTIC TEST SUITE (TESTS A / B / C / D) -->
+            <DockPanel Margin="0,10,0,10">
+                <TextBlock Text="DIAGNOSTIC TEST SUITE &amp; CALIBRATION AUDIT" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                <Button Style="{StaticResource GlassBtnSecondary}" Content="Clear Console" Command="{Binding ClearDiagnosticsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Test A Button -->
+                <Button Grid.Column="0" Style="{StaticResource GlassBtnSecondary}" Margin="0,0,6,0" Padding="10,12" HorizontalContentAlignment="Left" Command="{Binding RunTestACommand}">
+                    <StackPanel>
+                        <TextBlock Text="TEST A: Direct Raw Pattern" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                        <TextBlock Text="Bypasses codecs · Raw UYVY to SDI" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Test B Button -->
+                <Button Grid.Column="1" Style="{StaticResource GlassBtnSecondary}" Margin="6,0,6,0" Padding="10,12" HorizontalContentAlignment="Left" Command="{Binding RunTestBCommand}">
+                    <StackPanel>
+                        <TextBlock Text="TEST B: SRT Loopback" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                        <TextBlock Text="Local SRT transport &amp; codec audit" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Test C Button -->
+                <Button Grid.Column="2" Style="{StaticResource GlassBtnSecondary}" Margin="6,0,6,0" Padding="10,12" HorizontalContentAlignment="Left" Command="{Binding RunTestCCommand}">
+                    <StackPanel>
+                        <TextBlock Text="TEST C: Local Uncompressed" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                        <TextBlock Text="Evaluates buffer &amp; PCIe DMA link" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Test D Button -->
+                <Button Grid.Column="3" Style="{StaticResource GlassBtnSecondary}" Margin="6,0,0,0" Padding="10,12" HorizontalContentAlignment="Left" Command="{Binding RunTestDCommand}">
+                    <StackPanel>
+                        <TextBlock Text="TEST D: vMix / OBS Benchmark" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                        <TextBlock Text="Architecture reference verification" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Diagnostic Console Output -->
+            <Border Background="#060A10" BorderBrush="#162232" BorderThickness="1" CornerRadius="6" Padding="12" MinHeight="140">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" MaxHeight="220">
+                    <TextBox Text="{Binding DiagnosticResults}" IsReadOnly="True" Background="Transparent" Foreground="#38BDF8" BorderThickness="0" FontFamily="Consolas, Cascadia Code, monospace" FontSize="11" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Border>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

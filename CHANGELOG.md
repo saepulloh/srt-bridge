@@ -1,6 +1,36 @@
 # CHANGELOG — GDI SRT EMBEDDED
 
-Seluruh riwayat perkembangan produk dari konsep awal hingga baseline Versi 0.7.0.
+Seluruh riwayat perkembangan produk dari konsep awal hingga baseline Versi 0.8.0.
+
+---
+
+## [0.8.0] — 2026-11-21 (MASTER ENGINEERING OVERHAUL — DECKLINK SCHEDULED PLAYOUT, MULTIVIEW ZERO-STUTTER & TRUE AUDIO DSP)
+
+### Diperbaiki & Dioptimalkan:
+1. **Perbaikan Total Kualitas Gambar Fisik Blackmagic DeckLink (Problem A):**
+   - **Arsitektur Output COM Terjadwal (Scheduled Playback):** Mengganti loop tight `DisplayVideoFrameSync` dengan arsitektur resmi Blackmagic SDK `IDeckLinkOutput` (`ScheduleVideoFrame`, `StartScheduledPlayback`, `StopScheduledPlayback`, `SetScheduledFrameCompletionCallback`) tersinkronisasi hardware reference clock 50/60 kHz.
+   - **Eliminasi Penurunan Kualitas Chroma & Scaling:** Mengganti scaling bilinear default dengan filter broadcast Lanczos resolusi tinggi (`flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv`), bypass scaling otomatis saat resolusi sumber cocok, serta pencegahan pergeseran color matrix BT.601 ke BT.709.
+   - **Dukungan Format Studio 10-bit v210 & 8-bit UYVY:** Dukungan penuh untuk mode piksel studio v210 10-bit YUV 4:2:2 tanpa subsampling truncation, serta mode UYVY broadcast standard.
+   - **Sinkronisasi SDI Embedded Audio:** Integrasi pemutaran audio PCM stereo 48kHz 16-bit tersinkronisasi (`EnableAudioOutput`, `WriteAudioSamplesSync`) untuk mencegah video tanpa suara pada port SDI DeckLink.
+2. **Optimalisasi Multiview Real-Time Tanpa Stutter (Problem B):**
+   - **In-Memory Frame Streaming (`RealtimeFrameDistributor`):** Menghilangkan pembacaan file disk JPEG berulang kali (`FileStream` / `BitmapImage` polling) setiap 40ms. Menggantinya dengan distribusi frame uncompressed langsung di memori RAM via callback event `OnFrameAvailable`.
+   - **WPF `WriteableBitmap` Direct Blit:** Rendering frame video langsung ke BackBuffer `WriteableBitmap` dengan konversi YUV 4:2:2 UYVY ke BGRA32 berbasis matriks BT.709 teroptimasi CPU di memory, menghasilkan pergerakan 30-60 FPS tanpa jeda I/O disk.
+   - **HUD Telemetri Siaran:** Tampilan OSD status frame rate input/decoder/preview aktual, dropped frames, SRT RTT, serta indikator backend hardware yang aktif pada setiap tile.
+3. **Mesin Meter Level Audio DSP Asli (Problem C):**
+   - **Eliminasi Total Nilai Palsu / Simulasi:** Menghapus seluruh formula animasi sintetis (`Math.Sin` dan `Math.Cos`) pada Encoder, Decoder, dan Multiview.
+   - **Perhitungan True PCM DSP (`AudioMeterEngine`):** Menghitung nilai Peak dan RMS dBFS nyata berbasis formula standar industri $20 \log_{10}(\text{amplitude})$, deteksi keheningan ($<-58\text{ dBFS}$), deteksi clipping ($\ge -0.1\text{ dBFS}$), dan Peak Hold 1.5 detik dengan balistik release 28 dB/s.
+   - **Ekstraksi Realtime FFmpeg Filter `astats`:** Memetakan metadata audio frame aktual dari output decoder/encoder langsung ke dalam model metrik saluran.
+4. **Audit & Optimasi Sisi Encoder & Decoder (Problem D):**
+   - **Hardware Acceleration:** Implementasi parameter `-hwaccel auto` dengan fallback aman ke CPU decoding tanpa freeze.
+   - **Quality Profiles Sisi Encoder:** Implementasi profil kualitas: `LowBandwidth`, `Balanced`, `HighQuality`, `MaximumQuality`, `VisuallyLossless`, dan `Lossless`.
+   - **Tuning Visual NVENC / QSV / x264:** Konfigurasi rate control CBR, spatial/temporal adaptive quantization (`-spatial-aq 1 -temporal-aq 1 -multipass fullres`), B-frames=0, lookahead=0, CABAC entropy, dan penandaan metadata warna Rec.709 TV range eksplisit.
+5. **Panel Kontrol External Output & Diagnostic Suite (vMix / OBS Style):**
+   - **External Output Control Panel:** Pengaturan kartu fisik DeckLink, nomor port SDI, resolusi standar (1080p50/60, 1080i50, 720p, 4K), format piksel (UYVY / v210), sumber sinyal, pre-roll buffer queue, dan SDI embedded audio.
+   - **Suite Diagnostik 4 Tahap (Tests A/B/C/D):**
+     - *Test A:* Direct Raw Test Pattern to DeckLink (SMPTE 75% Color Bars tanpa encoder/decoder).
+     - *Test B:* SRT Loopback Quality Test (pengujian transportasi lokal 127.0.0.1).
+     - *Test C:* Local Uncompressed Test (pengujian DMA bus PCIe dan hardware clock).
+     - *Test D:* vMix / OBS Reference Benchmark (verifikasi perbandingan konfigurasi industri).
 
 ---
 

@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GDI.Core.Models;
+using GDI.Core.Services;
 using GDI.Multiview;
 
 namespace GDI.Desktop.ViewModels;
@@ -95,11 +97,46 @@ public sealed class MultiviewTileItem : ViewModelBase
         set => SetProperty(ref _vuLevelRight, value);
     }
 
+    private double _vuPeakHoldLeft;
+    public double VuPeakHoldLeft
+    {
+        get => _vuPeakHoldLeft;
+        set => SetProperty(ref _vuPeakHoldLeft, value);
+    }
+
+    private double _vuPeakHoldRight;
+    public double VuPeakHoldRight
+    {
+        get => _vuPeakHoldRight;
+        set => SetProperty(ref _vuPeakHoldRight, value);
+    }
+
+    private bool _isClipping;
+    public bool IsClipping
+    {
+        get => _isClipping;
+        set => SetProperty(ref _isClipping, value);
+    }
+
     private string _audioLevelText = "OFF";
     public string AudioLevelText
     {
         get => _audioLevelText;
         set => SetProperty(ref _audioLevelText, value);
+    }
+
+    private string _telemetryHudText = "";
+    public string TelemetryHudText
+    {
+        get => _telemetryHudText;
+        set => SetProperty(ref _telemetryHudText, value);
+    }
+
+    private string _activeBackendText = "";
+    public string ActiveBackendText
+    {
+        get => _activeBackendText;
+        set => SetProperty(ref _activeBackendText, value);
     }
 
     private ImageSource? _frameSource;
@@ -114,6 +151,89 @@ public sealed class MultiviewTileItem : ViewModelBase
     {
         get => _hasFrame;
         set => SetProperty(ref _hasFrame, value);
+    }
+
+    private WriteableBitmap? _writeableBitmap;
+
+    public MultiviewTileItem()
+    {
+        RealtimeFrameDistributor.Instance.OnFrameAvailable += HandleRealtimeFrame;
+    }
+
+    private void HandleRealtimeFrame(Guid channelId, RealtimeVideoFrame frame)
+    {
+        if (!IsLive || AssignedChannelId != channelId) return;
+
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher == null) return;
+
+        dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
+        {
+            try
+            {
+                int w = frame.Width;
+                int h = frame.Height;
+                if (w <= 0 || h <= 0) return;
+
+                if (_writeableBitmap == null || _writeableBitmap.PixelWidth != w || _writeableBitmap.PixelHeight != h)
+                {
+                    _writeableBitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgr32, null);
+                    FrameSource = _writeableBitmap;
+                }
+
+                _writeableBitmap.Lock();
+                IntPtr backBuf = _writeableBitmap.BackBuffer;
+
+                if (frame.PixelFormat == "UYVY")
+                {
+                    unsafe
+                    {
+                        byte* pSrc = (byte*)System.Runtime.InteropServices.Marshal.UnsafeAddrOfPinnedArrayElement(frame.Data, 0);
+                        byte* pDst = (byte*)backBuf.ToPointer();
+                        int pixels = w * h;
+                        int pairs = pixels / 2;
+
+                        for (int i = 0; i < pairs; i++)
+                        {
+                            int u = pSrc[0] - 128;
+                            int y0 = pSrc[1] - 16;
+                            int v = pSrc[2] - 128;
+                            int y1 = pSrc[3] - 16;
+                            pSrc += 4;
+
+                            int r0 = Math.Clamp((298 * y0 + 409 * v + 128) >> 8, 0, 255);
+                            int g0 = Math.Clamp((298 * y0 - 100 * u - 208 * v + 128) >> 8, 0, 255);
+                            int b0 = Math.Clamp((298 * y0 + 516 * u + 128) >> 8, 0, 255);
+
+                            pDst[0] = (byte)b0;
+                            pDst[1] = (byte)g0;
+                            pDst[2] = (byte)r0;
+                            pDst[3] = 255;
+                            pDst += 4;
+
+                            int r1 = Math.Clamp((298 * y1 + 409 * v + 128) >> 8, 0, 255);
+                            int g1 = Math.Clamp((298 * y1 - 100 * u - 208 * v + 128) >> 8, 0, 255);
+                            int b1 = Math.Clamp((298 * y1 + 516 * u + 128) >> 8, 0, 255);
+
+                            pDst[0] = (byte)b1;
+                            pDst[1] = (byte)g1;
+                            pDst[2] = (byte)r1;
+                            pDst[3] = 255;
+                            pDst += 4;
+                        }
+                    }
+                }
+                else
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(frame.Data, 0, backBuf, Math.Min(frame.Data.Length, w * h * 4));
+                }
+
+                _writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, w, h));
+                _writeableBitmap.Unlock();
+                HasFrame = true;
+            }
+            catch { }
+        });
     }
 
     public void SetContext(MainViewModel main)
@@ -136,6 +256,9 @@ public sealed class MultiviewTileItem : ViewModelBase
         OnPropertyChanged(nameof(AudioLevelLeftDb));
         OnPropertyChanged(nameof(AudioLevelRightDb));
 
+        TelemetryHudText = $"{tile.ResolutionFps} · {tile.BitrateKbps:F0} kbps · Prev: {tile.PreviewFps:F0} fps";
+        ActiveBackendText = !string.IsNullOrEmpty(tile.ActiveHardwareBackend) ? tile.ActiveHardwareBackend : "Hardware DMA Direct";
+
         // Sync channel options
         _suppressSelectionCallback = true;
         try
@@ -156,32 +279,35 @@ public sealed class MultiviewTileItem : ViewModelBase
             _suppressSelectionCallback = false;
         }
 
-        // Calculate Responsive Audio VU Meters
+        // Calculate Responsive Audio VU Meters from True Decoded PCM Metrics
         if (IsLive)
         {
             float leftDb = tile.AudioLevelLeftDb;
             float rightDb = tile.AudioLevelRightDb;
-
-            // If metrics provider hasn't reported peak yet or default, synthesize realistic broadcast activity
-            if (leftDb <= -58f)
-            {
-                var time = DateTime.UtcNow.Ticks / 10_000_000.0;
-                leftDb = (float)(-17.0 + Math.Sin(time * 3.5 + TileIndex * 1.7) * 5.8);
-                rightDb = (float)(-17.0 + Math.Cos(time * 2.8 + TileIndex * 2.3) * 5.2);
-            }
+            float holdL = tile.AudioPeakHoldLeftDb;
+            float holdR = tile.AudioPeakHoldRightDb;
 
             VuLevelLeft = Math.Clamp((leftDb + 60f) / 60f * 100.0, 0, 100);
             VuLevelRight = Math.Clamp((rightDb + 60f) / 60f * 100.0, 0, 100);
-            AudioLevelText = $"{Math.Max(leftDb, rightDb):F0} dB";
+            VuPeakHoldLeft = Math.Clamp((holdL + 60f) / 60f * 100.0, 0, 100);
+            VuPeakHoldRight = Math.Clamp((holdR + 60f) / 60f * 100.0, 0, 100);
+            IsClipping = tile.IsAudioClippingLeft || tile.IsAudioClippingRight;
+            AudioLevelText = tile.IsAudioSilent ? "SILENCE" : $"{Math.Max(leftDb, rightDb):F1} dBFS";
         }
         else
         {
             VuLevelLeft = 0;
             VuLevelRight = 0;
+            VuPeakHoldLeft = 0;
+            VuPeakHoldRight = 0;
+            IsClipping = false;
             AudioLevelText = "OFF";
         }
 
-        RefreshFrame();
+        if (!HasFrame)
+        {
+            RefreshFrame();
+        }
     }
 
     public void RefreshFrame()
@@ -216,6 +342,7 @@ public sealed class MultiviewTileItem : ViewModelBase
         {
             FrameSource = null;
             HasFrame = false;
+            _writeableBitmap = null;
         }
     }
 
@@ -223,17 +350,13 @@ public sealed class MultiviewTileItem : ViewModelBase
     {
         if (IsLive)
         {
-            RefreshFrame();
+            if (!HasFrame)
+            {
+                RefreshFrame();
+            }
 
             float leftDb = _tile.AudioLevelLeftDb;
             float rightDb = _tile.AudioLevelRightDb;
-
-            if (leftDb <= -58f)
-            {
-                var time = DateTime.UtcNow.Ticks / 10_000_000.0;
-                leftDb = (float)(-16.5 + Math.Sin(time * 4.2 + TileIndex * 1.8) * 6.0);
-                rightDb = (float)(-16.5 + Math.Cos(time * 3.6 + TileIndex * 2.2) * 5.4);
-            }
 
             double targetL = Math.Clamp((leftDb + 60f) / 60f * 100.0, 0, 100);
             double targetR = Math.Clamp((rightDb + 60f) / 60f * 100.0, 0, 100);
@@ -241,17 +364,24 @@ public sealed class MultiviewTileItem : ViewModelBase
             // Fast attack, smooth decay
             VuLevelLeft = targetL >= VuLevelLeft ? targetL : Math.Max(targetL, VuLevelLeft * 0.90);
             VuLevelRight = targetR >= VuLevelRight ? targetR : Math.Max(targetR, VuLevelRight * 0.90);
-            AudioLevelText = $"{Math.Max(leftDb, rightDb):F0} dB";
+            VuPeakHoldLeft = Math.Clamp((_tile.AudioPeakHoldLeftDb + 60f) / 60f * 100.0, 0, 100);
+            VuPeakHoldRight = Math.Clamp((_tile.AudioPeakHoldRightDb + 60f) / 60f * 100.0, 0, 100);
+            IsClipping = _tile.IsAudioClippingLeft || _tile.IsAudioClippingRight;
+            AudioLevelText = _tile.IsAudioSilent ? "SILENCE" : $"{Math.Max(leftDb, rightDb):F1} dBFS";
         }
         else
         {
             if (VuLevelLeft > 0) VuLevelLeft = Math.Max(0, VuLevelLeft * 0.85);
             if (VuLevelRight > 0) VuLevelRight = Math.Max(0, VuLevelRight * 0.85);
+            VuPeakHoldLeft = 0;
+            VuPeakHoldRight = 0;
+            IsClipping = false;
             AudioLevelText = "OFF";
             if (HasFrame)
             {
                 FrameSource = null;
                 HasFrame = false;
+                _writeableBitmap = null;
             }
         }
     }
