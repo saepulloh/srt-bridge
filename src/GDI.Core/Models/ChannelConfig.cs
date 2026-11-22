@@ -55,6 +55,7 @@ public sealed class ChannelConfig
 
     // Decoder Output Routing
     public string OutputTarget { get; set; } = "preview"; // preview, multiview, program, decklink, aja, magewell
+    public string MultiviewQuality { get; set; } = "Standard"; // Standard (960x540@30), HighQuality (1280x720@30), FullNative (1920x1080@50)
     public string? OutputDeviceId { get; set; }
     public string? OutputPortId { get; set; }
 

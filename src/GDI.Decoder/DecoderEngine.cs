@@ -152,6 +152,80 @@ public sealed class DecoderEngine : IDecoderEngine
             int targetHeight = channel.Height > 0 ? channel.Height : 1080;
             int targetFps = channel.Fps > 0 ? channel.Fps : 50;
             string pixelFormat = !string.IsNullOrWhiteSpace(channel.PixelFormat) ? channel.PixelFormat : "UYVY";
+            string sdiPixFmt = pixelFormat.Equals("v210", StringComparison.OrdinalIgnoreCase) ? "v210" : "uyvy422";
+
+            int outW;
+            int outH;
+            int outFps;
+
+            if (isDecklinkOutput)
+            {
+                // SDI Playout Path: Strictly maintains native broadcast target geometry (e.g. 1920x1080 @ 50p)
+                outW = targetWidth;
+                outH = targetHeight;
+                outFps = targetFps;
+            }
+            else
+            {
+                // Multiview / Desktop In-Memory Output: Configurable tiered resolution
+                // Standard: 960x540 @ 30 FPS (Default: optimal bandwidth and CPU for 16-channel multiview)
+                // HighQuality: 1280x720 @ 30 FPS (Enhanced definition for quad/dual layouts)
+                // FullNative / FullScreen: 1920x1080 @ 50 FPS (Source native resolution for single view)
+                string q = !string.IsNullOrWhiteSpace(channel.MultiviewQuality)
+                    ? channel.MultiviewQuality
+                    : "Standard";
+
+                switch (q.ToLowerInvariant())
+                {
+                    case "highquality":
+                    case "720p":
+                        outW = 1280;
+                        outH = 720;
+                        outFps = 30;
+                        break;
+
+                    case "fullnative":
+                    case "fullscreen":
+                    case "1080p":
+                        outW = targetWidth;
+                        outH = targetHeight;
+                        outFps = targetFps;
+                        break;
+
+                    case "standard":
+                    default:
+                        outW = 960;
+                        outH = 540;
+                        outFps = 30;
+                        break;
+                }
+            }
+
+            // Section 3: Dynamic stride and frame buffer size calculation
+            // For UYVY422: FrameBytes = Stride * Height
+            bool isV210 = sdiPixFmt.Equals("v210", StringComparison.OrdinalIgnoreCase);
+            int bytesPerPixel = isV210 ? 3 : 2;
+            int stride = isV210 ? ((outW + 47) / 48) * 128 : outW * 2;
+            int frameBytes = stride * outH;
+
+            // Section 7: Diagnostics & Telemetry
+            string scalingStatus = (targetWidth == outW && targetHeight == outH)
+                ? "DISABLED (1:1 Native Passthrough)"
+                : $"ENABLED (Lanczos {outW}x{outH})";
+            metrics.SourceResolution = $"{targetWidth}x{targetHeight} @ {targetFps} FPS";
+            metrics.DecoderResolution = $"{targetWidth}x{targetHeight} @ {targetFps} FPS";
+            metrics.MultiviewResolution = $"{outW}x{outH} @ {outFps} FPS";
+            metrics.ScalingStatus = scalingStatus;
+            metrics.FrameBufferSize = frameBytes;
+            metrics.FrameStride = stride;
+
+            _eventBus.Publish($"[DECODER CONFIG] Channel '{channel.Name}' (ID {channel.Id}):\n" +
+                $"  SOURCE: {metrics.SourceResolution}\n" +
+                $"  DECODE: {metrics.DecoderResolution}\n" +
+                $"  MULTIVIEW: {metrics.MultiviewResolution}\n" +
+                $"  SCALING: {scalingStatus}\n" +
+                $"  FORMAT: {sdiPixFmt.ToUpperInvariant()}\n" +
+                $"  BUFFER: {frameBytes:N0} bytes (Stride: {stride})");
 
             ProcessStartInfo psi = new ProcessStartInfo(_ffmpegPath)
             {
@@ -182,25 +256,26 @@ public sealed class DecoderEngine : IDecoderEngine
             psi.ArgumentList.Add("-probesize"); psi.ArgumentList.Add("100000");
             psi.ArgumentList.Add("-i"); psi.ArgumentList.Add(srtUrl);
 
-            string sdiPixFmt = pixelFormat.Equals("v210", StringComparison.OrdinalIgnoreCase) ? "v210" : "uyvy422";
-
-            // Phase D: Eliminate unnecessary scaling filters.
-            // If target is standard broadcast 1920x1080, omit scale filter to retain 1:1 pixel native sharpness.
-            // Only apply precision Lanczos scaling if geometry actually differs from standard 1080p.
+            // Section 4: Filter Graph Optimization
+            // If input 1920x1080 == outW x outH, eliminate scale filter to prevent redundant resampling and preserve native sharpness!
+            // If target differs (e.g. 960x540 or 1280x720), apply precision Lanczos scaling.
             var rawFilters = new List<string>();
-            if (targetFps > 0)
+            if (outFps > 0)
             {
-                rawFilters.Add($"fps={targetFps}");
+                rawFilters.Add($"fps={outFps}");
             }
-            if (targetWidth > 0 && targetHeight > 0 && (targetWidth != 1920 || targetHeight != 1080))
+
+            bool isNativePassthrough = (targetWidth == outW && targetHeight == outH);
+            if (!isNativePassthrough)
             {
-                rawFilters.Add($"scale={targetWidth}:{targetHeight}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv");
+                rawFilters.Add($"scale={outW}:{outH}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp:out_color_matrix=bt709:out_range=tv");
             }
+
             rawFilters.Add($"format={sdiPixFmt}");
             string rawFilterStr = string.Join(",", rawFilters);
 
             // Unified filter complex:
-            // [rawout]: Uncompressed 1080p50 broadcast feed streamed to pipe:1 for SDI playout and Desktop Multiview
+            // [rawout]: Uncompressed broadcast feed streamed to pipe:1 for SDI playout and Desktop Multiview
             // [prevout]: Isolated 960x540 @ 5fps snapshot for disk/remote API
             psi.ArgumentList.Add("-filter_complex");
             psi.ArgumentList.Add($"[0:v]split=2[raw][prev];[raw]{rawFilterStr}[rawout];[prev]fps=5,scale=960:540:flags=bicubic[prevout]");
@@ -289,7 +364,7 @@ public sealed class DecoderEngine : IDecoderEngine
                         pixelFormatName: sdiPixFmt,
                         onFrameDecoded: (buf, w, h, fmt) =>
                         {
-                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, w, h, buf, fmt);
+                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, w, h, buf, fmt, stride);
                             metrics.PreviewFps = targetFps;
                         },
                         onAudioSamples: pcm =>
@@ -310,15 +385,9 @@ public sealed class DecoderEngine : IDecoderEngine
             }
             else
             {
-                // In-Memory preview worker: reads uncompressed native 1080p broadcast frames and pushes directly to WPF Multiview
+                // In-Memory preview worker: reads uncompressed frames at target multiview resolution and pushes to WPF Multiview
                 _ = Task.Run(async () =>
                 {
-                    int prevW = targetWidth;
-                    int prevH = targetHeight;
-                    int frameBytes = sdiPixFmt.Equals("v210", StringComparison.OrdinalIgnoreCase)
-                        ? ((prevW + 47) / 48) * 128 * prevH
-                        : prevW * prevH * 2; // UYVY 4:2:2
-
                     // Double-buffering to eliminate 200MB/s LOH GC allocations and prevent memory tearing
                     byte[][] buffers = [new byte[frameBytes], new byte[frameBytes]];
                     int bufIdx = 0;
@@ -338,8 +407,8 @@ public sealed class DecoderEngine : IDecoderEngine
 
                             if (total < frameBytes) break;
 
-                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, prevW, prevH, currentBuf, sdiPixFmt);
-                            metrics.PreviewFps = targetFps;
+                            RealtimeFrameDistributor.Instance.PushFrame(channel.Id, outW, outH, currentBuf, sdiPixFmt, stride);
+                            metrics.PreviewFps = outFps;
                             bufIdx ^= 1;
                         }
                     }

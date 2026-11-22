@@ -48,6 +48,14 @@ public sealed class ChannelMetrics
     public bool IsAudioClippingRight { get => IsClippingRight; set => IsClippingRight = value; }
     public string ActiveHardwareBackend { get => ActiveBackend; set => ActiveBackend = value; }
 
+    // Video Geometry & Diagnostics
+    public string SourceResolution { get; set; } = "1920x1080 @ 50 FPS";
+    public string DecoderResolution { get; set; } = "1920x1080 @ 50 FPS";
+    public string MultiviewResolution { get; set; } = "960x540 @ 30 FPS";
+    public string ScalingStatus { get; set; } = "ENABLED";
+    public int FrameBufferSize { get; set; }
+    public int FrameStride { get; set; }
+
     public string? LastError { get; set; }
     public DateTimeOffset LastUpdated { get; set; } = DateTimeOffset.UtcNow;
 }

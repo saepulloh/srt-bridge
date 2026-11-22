@@ -7,6 +7,7 @@ public sealed class NodeSettings
     public int DefaultLatencyMs { get; set; } = 250;
     public bool AutoStartEnabled { get; set; } = true;
     public string MultiviewLayout { get; set; } = "Quad"; // Single, Dual, Quad, Hexa, Octo, Nine, Sixteen
+    public string MultiviewQuality { get; set; } = "Standard"; // Standard (960x540@30), HighQuality (1280x720@30), FullNative (1920x1080@50)
     public string SelectedFont { get; set; } = "Segoe UI";
     public string FfmpegPath { get; set; } = "tools/ffmpeg/bin/ffmpeg.exe";
     public string FfplayPath { get; set; } = "tools/ffmpeg/bin/ffplay.exe";

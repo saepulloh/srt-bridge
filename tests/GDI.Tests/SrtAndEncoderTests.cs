@@ -846,4 +846,25 @@ public class SrtAndEncoderTests
         Assert.Equal(0, gBlack);
         Assert.Equal(0, bBlack);
     }
+
+    [Fact]
+    public void RealtimeFrameDistributor_TracksDimensionsAndStrideAccurately()
+    {
+        var chId = Guid.NewGuid();
+        int w = 960;
+        int h = 540;
+        int expectedStride = w * 2; // 1920
+        byte[] dummyData = new byte[expectedStride * h];
+
+        GDI.Core.Services.RealtimeFrameDistributor.Instance.PushFrame(chId, w, h, dummyData, "UYVY");
+
+        var latest = GDI.Core.Services.RealtimeFrameDistributor.Instance.GetLatestFrame(chId);
+        Assert.NotNull(latest);
+        Assert.Equal(w, latest.Width);
+        Assert.Equal(h, latest.Height);
+        Assert.Equal(expectedStride, latest.Stride);
+        Assert.Equal(2, latest.BytesPerPixel);
+        Assert.Equal(expectedStride * h, latest.FrameSize);
+        Assert.Equal("UYVY", latest.PixelFormat);
+    }
 }

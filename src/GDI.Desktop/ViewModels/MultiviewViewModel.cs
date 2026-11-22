@@ -157,6 +157,11 @@ public sealed class MultiviewTileItem : ViewModelBase
     private int _isRenderingFrame = 0;
     private long _lastFrameRenderTicks = 0;
     private long _lastPreviewRefreshTick = 0;
+    private byte[]? _tileBuffer;
+    private int _bufferedWidth;
+    private int _bufferedHeight;
+    private int _bufferedStride;
+    private string _bufferedFormat = "UYVY";
 
     public MultiviewTileItem()
     {
@@ -182,15 +187,31 @@ public sealed class MultiviewTileItem : ViewModelBase
             return;
         }
 
+        // Section 5: Buffer isolation copy.
+        // Guarantees that while the UI thread is rendering, the producer thread (DeckLink or in-memory pipe)
+        // is free to reuse its ping-pong buffer with ZERO memory tearing or race conditions.
+        int dataLen = frame.Data.Length;
+        if (_tileBuffer == null || _tileBuffer.Length != dataLen)
+        {
+            _tileBuffer = new byte[dataLen];
+        }
+        Buffer.BlockCopy(frame.Data, 0, _tileBuffer, 0, dataLen);
+        _bufferedWidth = frame.Width;
+        _bufferedHeight = frame.Height;
+        _bufferedStride = frame.Stride > 0 ? frame.Stride : frame.Width * 2;
+        _bufferedFormat = frame.PixelFormat;
+
         dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
         {
             try
             {
                 _lastFrameRenderTicks = System.Diagnostics.Stopwatch.GetTimestamp();
-                int w = frame.Width;
-                int h = frame.Height;
-                if (w <= 0 || h <= 0) return;
+                int w = _bufferedWidth;
+                int h = _bufferedHeight;
+                int srcStride = _bufferedStride;
+                if (w <= 0 || h <= 0 || _tileBuffer == null) return;
 
+                // Section 6: Dynamically create/recreate WriteableBitmap if frame dimensions change
                 if (_writeableBitmap == null || _writeableBitmap.PixelWidth != w || _writeableBitmap.PixelHeight != h)
                 {
                     _writeableBitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgr32, null);
@@ -199,58 +220,61 @@ public sealed class MultiviewTileItem : ViewModelBase
 
                 _writeableBitmap.Lock();
                 IntPtr backBuf = _writeableBitmap.BackBuffer;
+                int backStride = _writeableBitmap.BackBufferStride;
 
-                bool isUyvy = string.Equals(frame.PixelFormat, "UYVY", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(frame.PixelFormat, "uyvy422", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(frame.PixelFormat, "2vuy", StringComparison.OrdinalIgnoreCase);
+                bool isUyvy = string.Equals(_bufferedFormat, "UYVY", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(_bufferedFormat, "uyvy422", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(_bufferedFormat, "2vuy", StringComparison.OrdinalIgnoreCase);
 
                 if (isUyvy)
                 {
                     unsafe
                     {
-                        fixed (byte* pSrcBase = frame.Data)
+                        fixed (byte* pSrcBase = _tileBuffer)
                         {
-                            byte* pSrc = pSrcBase;
-                            byte* pDst = (byte*)backBuf.ToPointer();
-                            int pixels = w * h;
-                            int pairs = Math.Min(pixels / 2, frame.Data.Length / 4);
+                            byte* pBackBuf = (byte*)backBuf.ToPointer();
+                            int pairsPerRow = w / 2;
 
-                            for (int i = 0; i < pairs; i++)
+                            for (int y = 0; y < h; y++)
                             {
-                                int u = pSrc[0] - 128;
-                                int y0 = pSrc[1] - 16;
-                                int v = pSrc[2] - 128;
-                                int y1 = pSrc[3] - 16;
-                                pSrc += 4;
+                                byte* pSrcRow = pSrcBase + (y * srcStride);
+                                uint* pDstRow = (uint*)(pBackBuf + (y * backStride));
 
-                                // Broadcast standard ITU-R BT.709 HDTV matrix (limited-range YCbCr -> RGB)
-                                int rTerm = 459 * v + 128;
-                                int gTerm = -55 * u - 136 * v + 128;
-                                int bTerm = 541 * u + 128;
+                                for (int i = 0; i < pairsPerRow; i++)
+                                {
+                                    int u = pSrcRow[0] - 128;
+                                    int y0 = pSrcRow[1] - 16;
+                                    int v = pSrcRow[2] - 128;
+                                    int y1 = pSrcRow[3] - 16;
+                                    pSrcRow += 4;
 
-                                int c0 = 298 * y0;
-                                int r0 = Math.Clamp((c0 + rTerm) >> 8, 0, 255);
-                                int g0 = Math.Clamp((c0 + gTerm) >> 8, 0, 255);
-                                int b0 = Math.Clamp((c0 + bTerm) >> 8, 0, 255);
+                                    // Broadcast standard ITU-R BT.709 HDTV matrix (limited-range YCbCr -> RGB)
+                                    int rTerm = 459 * v + 128;
+                                    int gTerm = -55 * u - 136 * v + 128;
+                                    int bTerm = 541 * u + 128;
 
-                                // Direct 32-bit uint write for Bgr32: 0xFF000000 | (r << 16) | (g << 8) | b
-                                *((uint*)pDst) = 0xFF000000u | ((uint)r0 << 16) | ((uint)g0 << 8) | (uint)b0;
-                                pDst += 4;
+                                    int c0 = 298 * y0;
+                                    int r0 = Math.Clamp((c0 + rTerm) >> 8, 0, 255);
+                                    int g0 = Math.Clamp((c0 + gTerm) >> 8, 0, 255);
+                                    int b0 = Math.Clamp((c0 + bTerm) >> 8, 0, 255);
 
-                                int c1 = 298 * y1;
-                                int r1 = Math.Clamp((c1 + rTerm) >> 8, 0, 255);
-                                int g1 = Math.Clamp((c1 + gTerm) >> 8, 0, 255);
-                                int b1 = Math.Clamp((c1 + bTerm) >> 8, 0, 255);
+                                    pDstRow[0] = 0xFF000000u | ((uint)r0 << 16) | ((uint)g0 << 8) | (uint)b0;
 
-                                *((uint*)pDst) = 0xFF000000u | ((uint)r1 << 16) | ((uint)g1 << 8) | (uint)b1;
-                                pDst += 4;
+                                    int c1 = 298 * y1;
+                                    int r1 = Math.Clamp((c1 + rTerm) >> 8, 0, 255);
+                                    int g1 = Math.Clamp((c1 + gTerm) >> 8, 0, 255);
+                                    int b1 = Math.Clamp((c1 + bTerm) >> 8, 0, 255);
+
+                                    pDstRow[1] = 0xFF000000u | ((uint)r1 << 16) | ((uint)g1 << 8) | (uint)b1;
+                                    pDstRow += 2;
+                                }
                             }
                         }
                     }
                 }
                 else
                 {
-                    System.Runtime.InteropServices.Marshal.Copy(frame.Data, 0, backBuf, Math.Min(frame.Data.Length, w * h * 4));
+                    System.Runtime.InteropServices.Marshal.Copy(_tileBuffer, 0, backBuf, Math.Min(_tileBuffer.Length, w * h * 4));
                 }
 
                 _writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, w, h));
