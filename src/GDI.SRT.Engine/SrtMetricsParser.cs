@@ -21,6 +21,30 @@ public static class SrtMetricsParser
     // Hardware decoder/encoder detection regexes
     private static readonly Regex HwaccelRegex = new(@"hwaccel\s+(\w+)|Selected\s+hwaccel\s+(\w+)|(cuvid|nvdec|qsv|d3d11va|videotoolbox|amf)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    private static float ParseDbValue(string raw, float fallback = -60f)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return fallback;
+        raw = raw.Trim();
+        if (raw.Equals("-inf", StringComparison.OrdinalIgnoreCase) ||
+            raw.Equals("-infinity", StringComparison.OrdinalIgnoreCase) ||
+            raw.Equals("nan", StringComparison.OrdinalIgnoreCase))
+        {
+            return -60f;
+        }
+        if (raw.Equals("inf", StringComparison.OrdinalIgnoreCase) ||
+            raw.Equals("infinity", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0f;
+        }
+        if (float.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var val))
+        {
+            if (float.IsNegativeInfinity(val) || float.IsNaN(val)) return -60f;
+            if (float.IsPositiveInfinity(val)) return 0f;
+            return Math.Clamp(val, -60f, 0f);
+        }
+        return fallback;
+    }
+
     public static void ParseProgressLine(string line, ChannelMetrics metrics)
     {
         if (string.IsNullOrWhiteSpace(line)) return;
@@ -54,27 +78,21 @@ public static class SrtMetricsParser
         var r1 = Rms1Regex.Match(line);
         if (r1.Success)
         {
-            float rmsL = float.TryParse(r1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
-            if (float.IsNegativeInfinity(rmsL) || float.IsNaN(rmsL)) rmsL = -60f;
-            metrics.RmsLeftDb = Math.Clamp(rmsL, -60f, 0f);
+            metrics.RmsLeftDb = ParseDbValue(r1.Groups[1].Value, -60f);
             metrics.AudioLevelLeftDb = metrics.RmsLeftDb;
         }
 
         var r2 = Rms2Regex.Match(line);
         if (r2.Success)
         {
-            float rmsR = float.TryParse(r2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
-            if (float.IsNegativeInfinity(rmsR) || float.IsNaN(rmsR)) rmsR = -60f;
-            metrics.RmsRightDb = Math.Clamp(rmsR, -60f, 0f);
+            metrics.RmsRightDb = ParseDbValue(r2.Groups[1].Value, -60f);
             metrics.AudioLevelRightDb = metrics.RmsRightDb;
         }
 
         var p1 = Peak1Regex.Match(line);
         if (p1.Success)
         {
-            float peakL = float.TryParse(p1.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
-            if (float.IsNegativeInfinity(peakL) || float.IsNaN(peakL)) peakL = -60f;
-            peakL = Math.Clamp(peakL, -60f, 0f);
+            float peakL = ParseDbValue(p1.Groups[1].Value, -60f);
             metrics.PeakLeftDb = peakL;
             metrics.IsAudioClippingLeft = peakL >= -0.1f;
             if (peakL > metrics.AudioPeakHoldLeftDb)
@@ -86,9 +104,7 @@ public static class SrtMetricsParser
         var p2 = Peak2Regex.Match(line);
         if (p2.Success)
         {
-            float peakR = float.TryParse(p2.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : -60f;
-            if (float.IsNegativeInfinity(peakR) || float.IsNaN(peakR)) peakR = -60f;
-            peakR = Math.Clamp(peakR, -60f, 0f);
+            float peakR = ParseDbValue(p2.Groups[1].Value, -60f);
             metrics.PeakRightDb = peakR;
             metrics.IsAudioClippingRight = peakR >= -0.1f;
             if (peakR > metrics.AudioPeakHoldRightDb)

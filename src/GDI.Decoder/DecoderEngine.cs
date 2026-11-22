@@ -169,7 +169,7 @@ public sealed class DecoderEngine : IDecoderEngine
             {
                 psi.ArgumentList.Add("-map"); psi.ArgumentList.Add("0:a:0?");
                 psi.ArgumentList.Add("-af");
-                psi.ArgumentList.Add("aformat=channel_layouts=stereo,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level:key=lavfi.astats.2.RMS_level:key=lavfi.astats.1.Peak_level:key=lavfi.astats.2.Peak_level");
+                psi.ArgumentList.Add("aformat=channel_layouts=stereo,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level,ametadata=print:key=lavfi.astats.2.RMS_level,ametadata=print:key=lavfi.astats.1.Peak_level,ametadata=print:key=lavfi.astats.2.Peak_level");
                 psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("null");
                 psi.ArgumentList.Add("-");
             }

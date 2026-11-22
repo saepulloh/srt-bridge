@@ -579,7 +579,7 @@ public sealed class EncoderEngine : IEncoderEngine
         if (c.IncludeAudio)
         {
             yield return "-af";
-            yield return "astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level:key=lavfi.astats.2.RMS_level:key=lavfi.astats.1.Peak_level:key=lavfi.astats.2.Peak_level";
+            yield return "aformat=channel_layouts=stereo,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.1.RMS_level,ametadata=print:key=lavfi.astats.2.RMS_level,ametadata=print:key=lavfi.astats.1.Peak_level,ametadata=print:key=lavfi.astats.2.Peak_level";
             yield return "-c:a"; yield return "aac";
             yield return "-b:a"; yield return $"{c.AudioBitrateKbps}k";
             yield return "-ar"; yield return c.AudioSampleRate.ToString();

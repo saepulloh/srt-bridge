@@ -200,7 +200,7 @@
                                     </Border>
 
                                     <!-- Column 1: Portrait Vertical Stereo Audio Level VU Meter -->
-                                    <Border Grid.Column="1" Width="24" Margin="6,0,0,0" Background="#04070B" CornerRadius="4" BorderBrush="#162232" BorderThickness="1" Padding="2,3">
+                                    <Border Grid.Column="1" Width="34" Margin="6,0,0,0" Background="#04070B" CornerRadius="4" BorderBrush="#162232" BorderThickness="1" Padding="2,3">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -213,18 +213,32 @@
                                             <TextBlock Grid.Row="0" Text="{Binding AudioLevelText}" FontSize="6.5" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,0,0,1"/>
 
                                             <!-- Clip Warning LED -->
-                                            <Border Grid.Row="1" Margin="0,0,0,2" CornerRadius="1" Padding="2,0.5" HorizontalAlignment="Center">
+                                            <Border Grid.Row="1" Margin="0,0,0,2" CornerRadius="2" Padding="3,0.5" HorizontalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#1E293B"/>
+                                                        <Setter Property="Background" Value="#0F172A"/>
+                                                        <Setter Property="BorderBrush" Value="#1E293B"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsClipping}" Value="True">
                                                                 <Setter Property="Background" Value="#EF4444"/>
+                                                                <Setter Property="BorderBrush" Value="#DC2626"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="CLIP" FontSize="6" FontWeight="ExtraBold" Foreground="White"/>
+                                                <TextBlock Text="CLIP" FontSize="6" FontWeight="ExtraBold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#475569"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsClipping}" Value="True">
+                                                                    <Setter Property="Foreground" Value="White"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </Border>
 
                                             <!-- Dual Vertical VU Meter Bars (L / R) with Peak Hold -->

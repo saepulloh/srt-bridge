@@ -154,6 +154,9 @@ public sealed class MultiviewTileItem : ViewModelBase
     }
 
     private WriteableBitmap? _writeableBitmap;
+    private int _isRenderingFrame = 0;
+    private long _lastFrameRenderTicks = 0;
+    private long _lastPreviewRefreshTick = 0;
 
     public MultiviewTileItem()
     {
@@ -164,13 +167,26 @@ public sealed class MultiviewTileItem : ViewModelBase
     {
         if (!IsLive || AssignedChannelId != channelId) return;
 
+        // Cap preview rendering to 30 FPS to prevent Dispatcher saturation on high frame-rate feeds (50/60p)
+        long nowTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+        long minIntervalTicks = System.Diagnostics.Stopwatch.Frequency / 30;
+        if (nowTicks - _lastFrameRenderTicks < minIntervalTicks) return;
+
+        // Skip frame if previous frame is still rendering on UI thread (prevents message queue backlog)
+        if (Interlocked.CompareExchange(ref _isRenderingFrame, 1, 0) != 0) return;
+
         var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher == null) return;
+        if (dispatcher == null)
+        {
+            Interlocked.Exchange(ref _isRenderingFrame, 0);
+            return;
+        }
 
         dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
         {
             try
             {
+                _lastFrameRenderTicks = System.Diagnostics.Stopwatch.GetTimestamp();
                 int w = frame.Width;
                 int h = frame.Height;
                 if (w <= 0 || h <= 0) return;
@@ -240,6 +256,10 @@ public sealed class MultiviewTileItem : ViewModelBase
                 HasFrame = true;
             }
             catch { }
+            finally
+            {
+                Interlocked.Exchange(ref _isRenderingFrame, 0);
+            }
         });
     }
 
@@ -266,24 +286,51 @@ public sealed class MultiviewTileItem : ViewModelBase
         TelemetryHudText = $"{tile.ResolutionFps} · {tile.BitrateKbps:F0} kbps · Prev: {tile.PreviewFps:F0} fps";
         ActiveBackendText = !string.IsNullOrEmpty(tile.ActiveHardwareBackend) ? tile.ActiveHardwareBackend : "Hardware DMA Direct";
 
-        // Sync channel options
-        _suppressSelectionCallback = true;
-        try
+        // Only rebuild AvailableChannels collection if channel count or IDs have actually changed
+        bool needsRebuild = AvailableChannels.Count != (channels.Count + 1);
+        if (!needsRebuild)
         {
-            AvailableChannels.Clear();
-            AvailableChannels.Add(new ChannelOptionItem(null, "Auto (Slot Order)"));
-            foreach (var c in channels)
+            for (int i = 0; i < channels.Count; i++)
             {
-                var dirLabel = c.Direction == ChannelDirection.Encoder ? "ENC" : "DEC";
-                AvailableChannels.Add(new ChannelOptionItem(c.Id, $"{c.Name} [{dirLabel}]"));
+                if (AvailableChannels[i + 1].Id != channels[i].Id)
+                {
+                    needsRebuild = true;
+                    break;
+                }
             }
-
-            var currentAssigned = _main?.MultiviewEngine.GetAssignedChannel(TileIndex);
-            SelectedChannel = AvailableChannels.FirstOrDefault(o => o.Id == currentAssigned) ?? AvailableChannels[0];
         }
-        finally
+
+        if (needsRebuild)
         {
-            _suppressSelectionCallback = false;
+            _suppressSelectionCallback = true;
+            try
+            {
+                AvailableChannels.Clear();
+                AvailableChannels.Add(new ChannelOptionItem(null, "Auto (Slot Order)"));
+                foreach (var c in channels)
+                {
+                    var dirLabel = c.Direction == ChannelDirection.Encoder ? "ENC" : "DEC";
+                    AvailableChannels.Add(new ChannelOptionItem(c.Id, $"{c.Name} [{dirLabel}]"));
+                }
+            }
+            finally
+            {
+                _suppressSelectionCallback = false;
+            }
+        }
+
+        var currentAssigned = _main?.MultiviewEngine.GetAssignedChannel(TileIndex);
+        if (SelectedChannel?.Id != currentAssigned)
+        {
+            _suppressSelectionCallback = true;
+            try
+            {
+                SelectedChannel = AvailableChannels.FirstOrDefault(o => o.Id == currentAssigned) ?? AvailableChannels[0];
+            }
+            finally
+            {
+                _suppressSelectionCallback = false;
+            }
         }
 
         // Calculate Responsive Audio VU Meters from True Decoded PCM Metrics
@@ -357,8 +404,9 @@ public sealed class MultiviewTileItem : ViewModelBase
     {
         if (IsLive)
         {
-            if (!HasFrame)
+            if (!HasFrame && (Environment.TickCount64 - _lastPreviewRefreshTick > 1000))
             {
+                _lastPreviewRefreshTick = Environment.TickCount64;
                 RefreshFrame();
             }
 

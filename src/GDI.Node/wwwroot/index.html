@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GDI SRT EMBEDDED — Broadcast Node Remote</title>
+<title>GDI SRT EMBEDDED — Broadcast Node Remote Control</title>
 <style>
 :root {
   color-scheme: dark;
   --bg: #090d13;
   --panel: #131b26;
+  --panel-card: #0e1520;
   --panel-hover: #192332;
   --line: #223043;
   --text: #e6edf5;
@@ -23,35 +24,101 @@
   --tally-live: #e5a420;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; }
-header { padding: 14px 24px; background: #0c121a; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
-.logo-title { display: flex; align-items: center; gap: 12px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+header {
+  padding: 10px 20px;
+  background: #0c121a;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.logo-title { display: flex; align-items: center; gap: 10px; }
 .logo-badge { background: #e04550; color: #fff; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px; letter-spacing: 1px; }
-h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
 .subtitle { color: var(--muted); font-size: 11px; }
-.nav-tabs { display: flex; gap: 4px; background: #090d13; padding: 4px; border-radius: 8px; border: 1px solid var(--line); }
-.nav-tab { background: transparent; border: 0; color: var(--muted); padding: 7px 14px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-.nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-.nav-tab.active { background: var(--blue); color: #fff; }
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-telemetry { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+.telem-badge { background: #131b26; border: 1px solid var(--line); padding: 4px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.telem-badge span.val { color: #fff; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
 .status-pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: #1c2736; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .status-pill.online { background: rgba(33, 183, 122, 0.15); color: var(--green); border: 1px solid rgba(33, 183, 122, 0.3); }
+.status-pill.offline { background: rgba(224, 69, 80, 0.15); color: var(--red); border: 1px solid rgba(224, 69, 80, 0.3); }
 .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-main { max-width: 1440px; margin: 0 auto; padding: 20px 24px; }
+
+/* Main layout with sidebar */
+.app-container { display: flex; min-height: calc(100vh - 54px); }
+.sidebar {
+  width: 210px;
+  background: #0c121a;
+  border-right: 1px solid var(--line);
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.04); color: #fff; }
+.nav-btn.active { background: var(--blue); color: #fff; box-shadow: 0 2px 6px rgba(22, 139, 208, 0.3); }
+.nav-btn .icon { font-size: 14px; width: 16px; text-align: center; }
+
+.main-content { flex: 1; padding: 20px 24px; max-width: 1600px; margin: 0 auto; width: 100%; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
+
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* Buttons */
 button { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s; }
 button:hover { background: var(--blue-hover); }
-button.secondary { background: #223043; color: var(--text); }
-button.secondary:hover { background: #2b3d54; }
+button.secondary { background: #1c2736; color: var(--text); border: 1px solid var(--line); }
+button.secondary:hover { background: #253346; }
 button.danger { background: var(--red); }
 button.danger:hover { background: #eb545e; }
-button.success { background: var(--green); }
+button.success { background: var(--green); color: #000; }
+button.success:hover { background: #2bd891; }
+button.sm { padding: 5px 10px; font-size: 11px; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-.grid-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+/* KPI Grid */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.kpi-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.kpi-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.kpi-value { font-size: 22px; font-weight: 700; color: #fff; }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Channel Cards Grid */
+.grid-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; position: relative; }
-.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px; }
 .channel-title { font-size: 14px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .direction-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
 .direction-badge.encoder { background: rgba(22, 139, 208, 0.2); color: var(--blue); border: 1px solid var(--blue); }
@@ -59,47 +126,241 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .state-indicator { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
 .state-indicator.STREAMING { background: var(--green); color: #000; }
 .state-indicator.RECEIVING { background: var(--green); color: #000; }
+.state-indicator.STARTING { background: var(--amber); color: #000; }
 .state-indicator.STOPPED { background: #2a3a4d; color: var(--muted); }
 .state-indicator.ERROR { background: var(--red); color: #fff; }
-.channel-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 14px; font-size: 12px; }
+
+.channel-preview-box {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #05080c;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.channel-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+.preview-bars-bg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.bars-row { display: flex; flex: 1; width: 100%; }
+.bar-c { flex: 1; height: 100%; }
+.preview-watermark {
+  position: absolute;
+  background: rgba(0,0,0,0.7);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.channel-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 12px; font-size: 12px; }
 .spec-item { display: flex; flex-direction: column; }
 .spec-label { color: var(--muted); font-size: 10px; text-transform: uppercase; font-weight: 600; }
 .spec-val { font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meter-row { margin: 10px 0; }
-.vu-label { font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 2px; }
-.vu-bar { height: 6px; background: #0c121a; border-radius: 3px; overflow: hidden; display: flex; }
-.vu-fill { height: 100%; width: 0%; background: linear-gradient(to right, #21b77a 70%, #e5a420 85%, #e04550 100%); transition: width 0.2s; }
-.card-actions { display: flex; gap: 8px; margin-top: 12px; }
-/* Multiview Grid */
-.mv-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-.mv-grid { display: grid; gap: 10px; background: #05080c; padding: 10px; border-radius: 8px; border: 1px solid var(--line); min-height: 480px; }
-.mv-grid.Quad { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+/* VU Meter Horizontal */
+.meter-row { margin: 10px 0; background: #0c121a; padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04); }
+.vu-label { font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: 600; }
+.vu-bar-pair { display: flex; flex-direction: column; gap: 3px; }
+.vu-bar { height: 6px; background: #06090e; border-radius: 3px; overflow: hidden; display: flex; }
+.vu-fill { height: 100%; width: 0%; background: linear-gradient(to right, #21b77a 70%, #e5a420 88%, #e04550 100%); transition: width 0.15s; }
+
+.card-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+
+/* Multiview View */
+.mv-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.mv-grid {
+  display: grid;
+  gap: 12px;
+  background: #05080c;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  min-height: 540px;
+}
 .mv-grid.Single { grid-template-columns: 1fr; }
 .mv-grid.Dual { grid-template-columns: 1fr 1fr; }
-.mv-grid.Hexa { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.mv-grid.Quad { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.mv-grid.Hexa { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
 .mv-grid.Octo { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
-.mv-grid.Nine { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+.mv-grid.Nine { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
 .mv-grid.Sixteen { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); }
-.mv-grid.Custom { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.mv-tile { background: #0c121a; border: 2px solid #202b38; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; position: relative; aspect-ratio: 16/9; }
-.mv-tile.tally-program { border-color: var(--tally-pgm); box-shadow: 0 0 10px rgba(224, 69, 80, 0.4); }
-.mv-tile-header { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; z-index: 2; }
-.mv-tile-footer { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); z-index: 2; }
-/* Hardware Matrix */
+.mv-grid.Custom { grid-template-columns: repeat(var(--custom-cols, 3), 1fr); grid-template-rows: repeat(var(--custom-rows, 2), 1fr); }
+
+.mv-tile {
+  background: #0c121a;
+  border: 2px solid #202b38;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+.mv-tile.tally-program { border-color: var(--tally-pgm); box-shadow: 0 0 12px rgba(224, 69, 80, 0.45); }
+.mv-tile.tally-preview { border-color: var(--tally-pvw); }
+.mv-tile.tally-live { border-color: var(--tally-live); }
+
+.mv-tile-header {
+  padding: 6px 10px;
+  background: rgba(12, 18, 26, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 5;
+}
+.mv-tile-header select {
+  background: #182230;
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  max-width: 140px;
+}
+.mv-tile-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #04070b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mv-tile-viewport img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* Vertical Stereo VU Meters in Multiview */
+.mv-vu-container {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: 34px;
+  background: rgba(5, 8, 12, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 4px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 3;
+  backdrop-filter: blur(2px);
+}
+.mv-vu-clip {
+  width: 100%;
+  font-size: 8px;
+  font-weight: 800;
+  text-align: center;
+  border-radius: 2px;
+  padding: 2px 0;
+  margin-bottom: 4px;
+  background: #0f172a;
+  color: #475569;
+  letter-spacing: 0.5px;
+}
+.mv-vu-clip.active {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 0 6px rgba(224, 69, 80, 0.8);
+}
+.mv-vu-bars {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+.mv-vu-vbar {
+  width: 5px;
+  height: 100%;
+  background: #090d13;
+  border-radius: 1px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+.mv-vu-vfill {
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(to top, #21b77a 70%, #e5a420 88%, #e04550 100%);
+  border-radius: 1px;
+  transition: height 0.15s;
+}
+.mv-vu-db {
+  font-size: 7px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-top: 3px;
+  text-align: center;
+  font-family: monospace;
+}
+
+.mv-tile-footer {
+  padding: 5px 10px;
+  background: rgba(12, 18, 26, 0.95);
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  z-index: 5;
+}
+
+/* Hardware Matrix & Tables */
 table.matrix { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
 table.matrix th, table.matrix td { padding: 10px 14px; border: 1px solid var(--line); text-align: left; }
-table.matrix th { background: #0e1520; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+table.matrix th { background: #0e1520; color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 700; }
 table.matrix tr:hover td { background: rgba(255,255,255,0.02); }
-/* Modal dialog */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 99; backdrop-filter: blur(4px); }
+
+/* Diagnostic Terminal Console */
+.terminal-box {
+  background: #05080c;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #38bdf8;
+  padding: 14px;
+  min-height: 220px;
+  max-height: 480px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
 .modal-overlay.open { display: flex; }
-.modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 520px; max-width: 90vw; max-height: 90vh; overflow-y: auto; padding: 20px; }
+.modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 600px; max-width: 92vw; max-height: 92vh; overflow-y: auto; padding: 22px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
 input, select { width: 100%; padding: 8px 10px; background: #0a0f16; border: 1px solid var(--line); border-radius: 5px; color: #fff; font-size: 12px; }
 input:focus, select:focus { outline: none; border-color: var(--blue); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-#auth-view { max-width: 400px; margin: 12vh auto; }
+
+#auth-view { max-width: 440px; margin: 12vh auto; }
 </style>
 </head>
 <body>
@@ -108,87 +369,168 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
   <div class="logo-title">
     <span class="logo-badge">GDI</span>
     <div>
-      <h1>SRT EMBEDDED</h1>
-      <div class="subtitle">Broadcast Node Management &amp; Remote Control &middot; v0.7.0</div>
+      <h1>SRT EMBEDDED <span style="font-size:11px; font-weight:600; color:var(--blue); margin-left:4px;">v1.0.0 NATIVE</span></h1>
+      <div class="subtitle">Broadcast Node Remote Control &amp; Telemetry</div>
     </div>
   </div>
 
-  <div class="nav-tabs" id="navTabs" style="display:none;">
-    <button class="nav-tab active" onclick="switchTab('channels')">📡 Channels</button>
-    <button class="nav-tab" onclick="switchTab('multiview')">🖥️ Multiview</button>
-    <button class="nav-tab" onclick="switchTab('return')">🔄 Program Return</button>
-    <button class="nav-tab" onclick="switchTab('hardware')">🎛️ Hardware I/O</button>
-    <button class="nav-tab" onclick="switchTab('network')">🌐 Network</button>
-    <button class="nav-tab" onclick="switchTab('system')">📊 System</button>
-    <button class="nav-tab" onclick="switchTab('settings')">⚙️ Settings</button>
+  <div class="header-telemetry" id="headerTelemetry" style="display:none;">
+    <div class="telem-badge"><span class="pulse-dot" style="color:var(--green)"></span> STANDBY</div>
+    <div class="telem-badge">CPU: <span id="topCpuVal" class="val">--%</span></div>
+    <div class="telem-badge">RAM: <span id="topRamVal" class="val">-- GiB</span></div>
+    <div class="telem-badge">GPU: <span id="topGpuVal" class="val">--</span></div>
   </div>
 
   <div class="header-actions">
+    <div id="topBatchBtns" style="display:none; gap:6px;">
+      <button class="success sm" onclick="startAllChannels()">&#9654; Start All</button>
+      <button class="danger sm" onclick="stopAllChannels()">&#9632; Stop All</button>
+    </div>
     <div id="connPill" class="status-pill"><span class="pulse-dot"></span> <span id="connText">Disconnected</span></div>
-    <button id="logoutBtn" class="secondary" style="display:none;" onclick="disconnect()">Disconnect</button>
+    <button id="logoutBtn" class="secondary sm" style="display:none;" onclick="disconnect()">Disconnect</button>
   </div>
 </header>
 
-<main>
-  <!-- Authentication View -->
-  <div id="auth-view" class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0;">Connect to GDI Node</h3>
-      <span id="nodeHealthBadge" class="status-pill"><span class="pulse-dot"></span> <span id="nodeHealthText">Checking Node...</span></span>
-    </div>
-    <p class="subtitle" style="margin-bottom:16px;">Masukkan node API authentication token untuk mengakses manajemen siaran.</p>
-    <div class="form-group">
-      <label>API Token</label>
-      <input id="apiTokenInput" type="text" value="GDI-SRT-2026" placeholder="Default token: GDI-SRT-2026">
-      <div style="font-size:11px; color:var(--muted); margin-top:4px;">Token default: <code>GDI-SRT-2026</code> (dapat diubah di tab Settings).</div>
-    </div>
-    <div id="authErrorMsg" style="display:none; color:var(--red); font-size:12px; margin-bottom:12px; background:rgba(224,69,80,0.1); border:1px solid var(--red); padding:8px; border-radius:4px;"></div>
-    <button style="width:100%; justify-content:center;" onclick="connectWithToken()">Connect to Node</button>
+<!-- Authentication View -->
+<div id="auth-view" class="card" style="margin-top: 10vh;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="margin:0;">Connect to GDI Node</h3>
+    <span id="nodeHealthBadge" class="status-pill"><span class="pulse-dot"></span> <span id="nodeHealthText">Checking Node...</span></span>
   </div>
+  <p class="subtitle" style="margin-bottom:16px;">Masukkan node API authentication token untuk mengakses manajemen siaran web remote.</p>
+  <div class="form-group">
+    <label>API Token</label>
+    <input id="apiTokenInput" type="text" value="GDI-SRT-2026" placeholder="Default token: GDI-SRT-2026">
+    <div style="font-size:11px; color:var(--muted); margin-top:4px;">Token default: <code>GDI-SRT-2026</code> (dapat diubah di tab Settings).</div>
+  </div>
+  <div id="authErrorMsg" style="display:none; color:var(--red); font-size:12px; margin-bottom:12px; background:rgba(224,69,80,0.1); border:1px solid var(--red); padding:8px; border-radius:4px;"></div>
+  <button style="width:100%; justify-content:center;" onclick="connectWithToken()">Connect to Node</button>
+</div>
 
-  <!-- App Views -->
-  <div id="app-view" style="display:none;">
+<!-- Main Application UI -->
+<div class="app-container" id="app-view" style="display:none;">
+  <!-- Sidebar Navigation (Full Parity with Desktop) -->
+  <aside class="sidebar">
+    <button class="nav-btn active" onclick="switchTab('dashboard')"><span class="icon">📊</span> Dashboard</button>
+    <button class="nav-btn" onclick="switchTab('encoders')"><span class="icon">📹</span> Encoders</button>
+    <button class="nav-btn" onclick="switchTab('decoders')"><span class="icon">📥</span> Decoders</button>
+    <button class="nav-btn" onclick="switchTab('multiview')"><span class="icon">🖥️</span> Multiview</button>
+    <button class="nav-btn" onclick="switchTab('return')"><span class="icon">🔄</span> Program Return</button>
+    <button class="nav-btn" onclick="switchTab('hardware')"><span class="icon">🎛️</span> Hardware I/O</button>
+    <button class="nav-btn" onclick="switchTab('network')"><span class="icon">🌐</span> Network</button>
+    <button class="nav-btn" onclick="switchTab('system')"><span class="icon">📈</span> System Monitor</button>
+    <button class="nav-btn" onclick="switchTab('logs')"><span class="icon">📋</span> Broadcast Logs</button>
+    <button class="nav-btn" onclick="switchTab('settings')"><span class="icon">⚙️</span> Settings</button>
+  </aside>
 
-    <!-- Channels Tab -->
-    <div id="tab-channels" class="tab-content active">
+  <!-- Main Content Area -->
+  <main class="main-content">
+
+    <!-- TAB 1: DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Active Streams</div>
+          <div class="kpi-value" id="kpiActiveChannels">0</div>
+          <div class="kpi-sub" id="kpiActiveChannelsSub">All channels stopped</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Encoders (Send)</div>
+          <div class="kpi-value" id="kpiActiveEncoders" style="color:var(--blue);">0</div>
+          <div class="kpi-sub">SRT Transmitters</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Decoders (Receive)</div>
+          <div class="kpi-value" id="kpiActiveDecoders" style="color:var(--amber);">0</div>
+          <div class="kpi-sub">SDI Playout Receivers</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">System Health</div>
+          <div class="kpi-value" id="kpiHealth" style="color:var(--green);">ONLINE</div>
+          <div class="kpi-sub" id="kpiHealthSub">RTX 4050 &middot; Ready</div>
+        </div>
+      </div>
+
       <div class="toolbar">
-        <div>
+        <div class="toolbar-actions">
           <button onclick="openChannelModal()">+ Add Channel</button>
+          <button class="success" onclick="startAllChannels()">&#9654; Start All Channels</button>
+          <button class="danger" onclick="stopAllChannels()">&#9632; Stop All Channels</button>
           <button class="secondary" onclick="loadChannels()">Refresh</button>
         </div>
-        <div id="channelSummary" style="color:var(--muted); font-size:12px;"></div>
+        <div id="dashboardChannelSummary" style="color:var(--muted); font-size:12px;"></div>
       </div>
-      <div id="channelsContainer" class="grid-channels"></div>
+
+      <div id="dashboardChannelsContainer" class="grid-channels"></div>
     </div>
 
-    <!-- Multiview Tab -->
+    <!-- TAB 2: ENCODERS -->
+    <div id="tab-encoders" class="tab-content">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0; font-size:16px;">SRT Broadcast Encoders</h2>
+          <div class="subtitle">Broadcast ingest from Blackmagic SDI inputs &amp; hardware compression</div>
+        </div>
+        <div class="toolbar-actions">
+          <button onclick="openChannelModal(0)">+ Add Encoder</button>
+          <button class="success sm" onclick="startAllChannels('encoder')">&#9654; Start All Encoders</button>
+          <button class="danger sm" onclick="stopAllChannels('encoder')">&#9632; Stop All Encoders</button>
+          <button class="secondary" onclick="loadChannels()">Refresh</button>
+        </div>
+      </div>
+      <div id="encodersContainer" class="grid-channels"></div>
+    </div>
+
+    <!-- TAB 3: DECODERS -->
+    <div id="tab-decoders" class="tab-content">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0; font-size:16px;">SRT Broadcast Decoders</h2>
+          <div class="subtitle">Ingest remote SRT streams with direct DeckLink SDI playout &amp; multiview routing</div>
+        </div>
+        <div class="toolbar-actions">
+          <button onclick="openChannelModal(1)">+ Add Decoder</button>
+          <button class="success sm" onclick="startAllChannels('decoder')">&#9654; Start All Decoders</button>
+          <button class="danger sm" onclick="stopAllChannels('decoder')">&#9632; Stop All Decoders</button>
+          <button class="secondary" onclick="loadChannels()">Refresh</button>
+        </div>
+      </div>
+      <div id="decodersContainer" class="grid-channels"></div>
+    </div>
+
+    <!-- TAB 4: MULTIVIEW (Full Parity with Desktop) -->
     <div id="tab-multiview" class="tab-content">
       <div class="toolbar">
         <div class="mv-controls">
-          <span style="color:var(--muted); font-size:11px; font-weight:600;">LAYOUT:</span>
-          <button class="secondary" onclick="setLayout('Single')">1 View</button>
-          <button class="secondary" onclick="setLayout('Dual')">2 View</button>
-          <button class="secondary" onclick="setLayout('Quad')">4 View (2x2)</button>
-          <button class="secondary" onclick="setLayout('Hexa')">6 View (1+5)</button>
-          <button class="secondary" onclick="setLayout('Octo')">8 View (2+6)</button>
-          <button class="secondary" onclick="setLayout('Nine')">9 View (3x3)</button>
-          <button class="secondary" onclick="setLayout('Sixteen')">16 View (4x4)</button>
-          <button class="secondary" onclick="setLayout('Custom')">Custom Grid</button>
+          <span style="color:var(--muted); font-size:11px; font-weight:700;">LAYOUT:</span>
+          <button class="secondary sm" onclick="setLayout('Single')">1 View</button>
+          <button class="secondary sm" onclick="setLayout('Dual')">2 View</button>
+          <button class="secondary sm" onclick="setLayout('Quad')">4 Quad</button>
+          <button class="secondary sm" onclick="setLayout('Hexa')">6 View</button>
+          <button class="secondary sm" onclick="setLayout('Octo')">8 View</button>
+          <button class="secondary sm" onclick="setLayout('Nine')">9 View</button>
+          <button class="secondary sm" onclick="setLayout('Sixteen')">16 View</button>
+          <button class="secondary sm" onclick="setLayout('Custom')">Custom</button>
+        </div>
+        <div class="toolbar-actions">
+          <button class="secondary sm" onclick="openCustomMvModal()">⚙️ Custom Multiview</button>
+          <button class="secondary sm" onclick="toggleFullscreen()">⛶ Fullscreen (F11)</button>
         </div>
       </div>
       <div id="multiviewGrid" class="mv-grid Quad"></div>
     </div>
 
-    <!-- Program Return Tab -->
+    <!-- TAB 5: PROGRAM RETURN -->
     <div id="tab-return" class="tab-content">
-      <div class="card" style="max-width:720px; margin:0 auto;">
+      <div class="card" style="max-width:760px; margin:0 auto;">
         <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:10px;">Program Return Pipeline (Studio &harr; Venue)</h3>
+        <p class="subtitle" style="margin-bottom:16px;">Low-latency return feed channel for teleprompter, confidence monitor, or studio PGM tally return.</p>
         <div class="form-row">
           <div class="form-group">
             <label>Operating Role</label>
             <select id="returnRole">
-              <option value="studio-send">Studio &mdash; Send Program</option>
-              <option value="venue-receive">Venue &mdash; Receive Program</option>
+              <option value="studio-send">Studio &mdash; Send Program Feed</option>
+              <option value="venue-receive">Venue &mdash; Receive Program Feed</option>
             </select>
           </div>
           <div class="form-group">
@@ -212,13 +554,13 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
             <select id="returnDevice"></select>
           </div>
           <div class="form-group">
-            <label>Encoder</label>
+            <label>Encoder Engine</label>
             <select id="returnEncoder">
-              <option value="auto">Auto Select (Hardware/CPU)</option>
+              <option value="auto">Auto Select (Hardware preferred)</option>
               <option value="nvenc">NVIDIA NVENC</option>
               <option value="qsv">Intel QuickSync</option>
               <option value="amf">AMD AMF</option>
-              <option value="cpu">CPU (x264)</option>
+              <option value="cpu">CPU Software (x264)</option>
             </select>
           </div>
         </div>
@@ -248,16 +590,19 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
       </div>
     </div>
 
-    <!-- Hardware I/O Tab -->
+    <!-- TAB 6: HARDWARE I/O & DIAGNOSTICS -->
     <div id="tab-hardware" class="tab-content">
       <div class="toolbar">
-        <div><h3 style="margin:0;">Hardware Device Inventory &amp; I/O Matrix</h3></div>
+        <div>
+          <h2 style="margin:0; font-size:16px;">Hardware Device Inventory &amp; I/O Matrix</h2>
+          <div class="subtitle">Blackmagic DeckLink PCIe SDI, Magewell, and DirectShow capture cards</div>
+        </div>
         <button class="secondary" onclick="scanHardware()">Scan Hardware Devices</button>
       </div>
       <div id="hardwareDeviceList" style="margin-bottom:20px;"></div>
-      <div class="card">
+      
+      <div class="card" style="margin-bottom:20px;">
         <h4 style="margin-top:0;">Physical Port Assignment Matrix</h4>
-        <div id="matrixValidationAlert" style="display:none; padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:12px;"></div>
         <table class="matrix" id="ioMatrixTable">
           <thead>
             <tr><th>Bus / Source</th><th>Assigned Device</th><th>Physical Port</th><th>Direction</th><th>Status</th></tr>
@@ -265,23 +610,71 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
           <tbody id="matrixTbody"></tbody>
         </table>
       </div>
+
+      <!-- Diagnostic Tests Suite -->
+      <div class="card">
+        <h4 style="margin-top:0;">Broadcast Hardware Diagnostics &amp; DMA Benchmark</h4>
+        <p class="subtitle" style="margin-bottom:12px;">Verifikasi pipeline hardware DeckLink, zero-latency DMA transfer, dan benchmark transmisi SRT.</p>
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <button class="secondary sm" onclick="runDiagnosticTest('A')">Test A: Direct Raw SMPTE to DeckLink</button>
+          <button class="secondary sm" onclick="runDiagnosticTest('B')">Test B: SRT Loopback Quality Test</button>
+          <button class="secondary sm" onclick="runDiagnosticTest('C')">Test C: Local Uncompressed Test</button>
+          <button class="secondary sm" onclick="runDiagnosticTest('D')">Test D: vMix/OBS Reference Benchmark</button>
+        </div>
+        <div class="terminal-box" id="diagnosticTerminal">No diagnostic tests executed yet. Click one of the test buttons above to audit hardware.</div>
+      </div>
     </div>
 
-    <!-- Network Tab -->
+    <!-- TAB 7: NETWORK -->
     <div id="tab-network" class="tab-content">
-      <div class="toolbar"><h3 style="margin:0;">Network Adapters &amp; Real-time Throughput</h3><button class="secondary" onclick="loadNetwork()">Refresh</button></div>
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0; font-size:16px;">Network Interfaces &amp; Real-time Throughput</h2>
+          <div class="subtitle">SRT UDP packet transport telemetry and interface link status</div>
+        </div>
+        <button class="secondary" onclick="loadNetwork()">Refresh</button>
+      </div>
       <div id="networkAdaptersContainer" class="grid-channels"></div>
     </div>
 
-    <!-- System Tab -->
+    <!-- TAB 8: SYSTEM MONITOR -->
     <div id="tab-system" class="tab-content">
-      <div class="grid-channels" id="systemMetricsContainer"></div>
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0; font-size:16px;">System Performance Monitor</h2>
+          <div class="subtitle">Host platform, hardware acceleration, memory pressure, and streaming load</div>
+        </div>
+        <button class="secondary" onclick="loadSystem()">Refresh</button>
+      </div>
+      <div class="kpi-grid" id="systemMetricsContainer"></div>
     </div>
 
-    <!-- Settings Tab -->
+    <!-- TAB 9: BROADCAST LOGS -->
+    <div id="tab-logs" class="tab-content">
+      <div class="toolbar">
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <span style="font-size:11px; font-weight:700; color:var(--muted);">FILTER:</span>
+          <button class="secondary sm" onclick="setLogCategory('ALL')">ALL</button>
+          <button class="secondary sm" onclick="setLogCategory('BROADCAST')">BROADCAST</button>
+          <button class="secondary sm" onclick="setLogCategory('ENCODER')">ENCODER</button>
+          <button class="secondary sm" onclick="setLogCategory('DECODER')">DECODER</button>
+          <button class="secondary sm" onclick="setLogCategory('SRT')">SRT</button>
+          <button class="secondary sm" onclick="setLogCategory('HARDWARE')">HARDWARE</button>
+          <button class="secondary sm" onclick="setLogCategory('CONFLICT')">CONFLICT</button>
+        </div>
+        <div class="toolbar-actions">
+          <input id="logSearchInput" type="text" placeholder="Search logs..." style="width:160px; padding:5px 8px; font-size:11px;" oninput="filterLogs()">
+          <button class="secondary sm" onclick="clearLogs()">Clear</button>
+          <button class="secondary sm" onclick="exportLogs()">Export Log</button>
+        </div>
+      </div>
+      <div class="terminal-box" id="logsTerminal" style="min-height:500px; color:#e2e8f0;">Loading logs...</div>
+    </div>
+
+    <!-- TAB 10: SETTINGS -->
     <div id="tab-settings" class="tab-content">
-      <div class="card" style="max-width:560px; margin:0 auto;">
-        <h3 style="margin-top:0;">Node Configuration</h3>
+      <div class="card" style="max-width:580px; margin:0 auto;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:10px;">Node Configuration</h3>
         <div class="form-group">
           <label>Maximum Channel Slots</label>
           <input id="setChannelLimit" type="number" min="1" max="32" value="4">
@@ -306,17 +699,17 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
             <option value='Arial, Helvetica, sans-serif'>Arial (Clean Sans)</option>
           </select>
         </div>
-        <button onclick="saveNodeSettings()">Save Settings</button>
+        <button style="margin-top:10px;" onclick="saveNodeSettings()">Save Settings</button>
       </div>
     </div>
 
-  </div>
-</main>
+  </main>
+</div>
 
-<!-- Channel Modal -->
+<!-- Modal: Add / Configure Channel -->
 <div id="channelModal" class="modal-overlay">
   <div class="modal-content">
-    <h3 id="modalTitle" style="margin-top:0;">Add Broadcast Channel</h3>
+    <h3 id="modalTitle" style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:8px;">Add Broadcast Channel</h3>
     <div class="form-group">
       <label>Channel Name</label>
       <input id="chanName" type="text" value="CHANNEL 01">
@@ -324,7 +717,7 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
     <div class="form-row">
       <div class="form-group">
         <label>Direction</label>
-        <select id="chanDirection">
+        <select id="chanDirection" onchange="onDirectionChanged()">
           <option value="0">Encoder (Send SRT)</option>
           <option value="1">Decoder (Receive SRT)</option>
         </select>
@@ -349,11 +742,11 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Video Input / Hardware Device</label>
+        <label id="chanSourceLabel">Video Input / Hardware Device</label>
         <select id="chanVideoDevice"></select>
       </div>
       <div class="form-group">
-        <label>Encoder Engine</label>
+        <label>Encoder Engine / Accel</label>
         <select id="chanEncoder">
           <option value="auto">Auto (Hardware preferred)</option>
           <option value="nvenc">NVIDIA NVENC</option>
@@ -362,11 +755,23 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
           <option value="cpu">CPU Software</option>
         </select>
       </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label>Video Codec</label>
         <select id="chanVideoCodec">
           <option value="h264">H.264 / AVC (Standard)</option>
           <option value="h265">H.265 / HEVC (High Efficiency)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quality Profile</label>
+        <select id="chanProfile">
+          <option value="HighQuality">High Quality (Broadcast Default)</option>
+          <option value="MaximumQuality">Maximum Quality</option>
+          <option value="Balanced">Balanced</option>
+          <option value="LowBandwidth">Low Bandwidth</option>
+          <option value="VisuallyLossless">Visually Lossless</option>
         </select>
       </div>
     </div>
@@ -394,32 +799,113 @@ input:focus, select:focus { outline: none; border-color: var(--blue); }
           </datalist>
           <input id="chanBitrate" type="number" value="8000" style="width:60%;">
         </div>
-        <small style="color:#38bdf8; font-size:10px; display:block; margin-top:2px;">* Gunakan 0 / Auto untuk deteksi otomatis sinyal SDI</small>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Audio Bitrate</label>
+        <select id="chanAudioBitrate">
+          <option value="128">128 kbps (Stereo)</option>
+          <option value="192">192 kbps (Studio)</option>
+          <option value="256">256 kbps (High Fidelity)</option>
+          <option value="320">320 kbps (Reference)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>SRT Latency (ms)</label>
+        <input id="chanLatency" type="number" value="250">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>SRT Stream ID (Optional)</label>
-        <input id="chanStreamId" type="text" placeholder="e.g. live/feed1 or #!::u=user,r=feed">
+        <input id="chanStreamId" type="text" placeholder="e.g. live/cam1 or #!::u=user,r=feed">
       </div>
       <div class="form-group">
         <label>SRT Passphrase (AES)</label>
         <input id="chanPassphrase" type="password" placeholder="Passphrase (10-79 chars, optional)...">
       </div>
     </div>
-    <div class="card-actions" style="justify-content:flex-end;">
+    <div class="card-actions" style="justify-content:flex-end; margin-top:16px;">
       <button class="secondary" onclick="closeChannelModal()">Cancel</button>
       <button onclick="saveChannel()">Save Channel</button>
     </div>
   </div>
 </div>
 
+<!-- Modal: Custom Multiview Layout & Channel Assignments -->
+<div id="customMvModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:8px;">Custom Multiview Grid &amp; Assignments</h3>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label>Grid Rows (1-6)</label>
+        <input id="customMvRows" type="number" min="1" max="6" value="2">
+      </div>
+      <div class="form-group">
+        <label>Grid Columns (1-6)</label>
+        <input id="customMvCols" type="number" min="1" max="6" value="3">
+      </div>
+    </div>
+    <div class="card-actions" style="margin-bottom:14px;">
+      <button class="secondary sm" onclick="applyCustomGridDimensions()">Apply Grid Size</button>
+    </div>
+    <div class="form-group">
+      <label>Tile Channel Assignments</label>
+      <div id="customMvAssignmentList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+    <div class="card-actions" style="justify-content:flex-end; margin-top:16px;">
+      <button class="secondary" onclick="closeCustomMvModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
-let apiToken = localStorage.getItem('gdi_api_token') || '';
+let apiToken = localStorage.getItem('gdi_api_token') || 'GDI-SRT-2026';
 let currentEditingId = null;
 let pollTimer = null;
+let allChannelsCache = [];
+let allLogsCache = [];
+let selectedLogCategory = 'ALL';
 
 const $ = id => document.getElementById(id);
+
+// Color bars SVG helper
+function getFallbackBarsHtml(name = 'NO SIGNAL') {
+  return `
+    <div class="preview-bars-bg">
+      <div class="bars-row">
+        <div class="bar-c" style="background:#bfbfbf;"></div>
+        <div class="bar-c" style="background:#bfbf00;"></div>
+        <div class="bar-c" style="background:#00bfbf;"></div>
+        <div class="bar-c" style="background:#00bf00;"></div>
+        <div class="bar-c" style="background:#bf00bf;"></div>
+        <div class="bar-c" style="background:#bf0000;"></div>
+        <div class="bar-c" style="background:#0000bf;"></div>
+      </div>
+      <div class="bars-row" style="flex:0.25;">
+        <div class="bar-c" style="background:#0000bf;"></div>
+        <div class="bar-c" style="background:#000000;"></div>
+        <div class="bar-c" style="background:#bf00bf;"></div>
+        <div class="bar-c" style="background:#000000;"></div>
+        <div class="bar-c" style="background:#00bfbf;"></div>
+        <div class="bar-c" style="background:#000000;"></div>
+        <div class="bar-c" style="background:#bfbfbf;"></div>
+      </div>
+      <div class="bars-row" style="flex:0.35;">
+        <div class="bar-c" style="background:#00214c; flex:1.25;"></div>
+        <div class="bar-c" style="background:#ffffff; flex:1.25;"></div>
+        <div class="bar-c" style="background:#32006a; flex:1.25;"></div>
+        <div class="bar-c" style="background:#000000; flex:1.25;"></div>
+        <div class="bar-c" style="background:#090909; flex:0.67;"></div>
+        <div class="bar-c" style="background:#000000; flex:0.67;"></div>
+        <div class="bar-c" style="background:#1d1d1d; flex:0.66;"></div>
+        <div class="bar-c" style="background:#000000; flex:1.25;"></div>
+      </div>
+    </div>
+    <div class="preview-watermark">${name} &middot; OFF-AIR</div>
+  `;
+}
 
 async function api(path, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
@@ -440,34 +926,43 @@ async function api(path, method = 'GET', body = null) {
 function showAuth() {
   $('auth-view').style.display = 'block';
   $('app-view').style.display = 'none';
-  $('navTabs').style.display = 'none';
+  $('headerTelemetry').style.display = 'none';
+  $('topBatchBtns').style.display = 'none';
   $('logoutBtn').style.display = 'none';
-  $('connPill').className = 'status-pill';
+  $('connPill').className = 'status-pill offline';
   $('connText').textContent = 'Disconnected';
   if (pollTimer) clearInterval(pollTimer);
 }
 
 function showApp() {
   $('auth-view').style.display = 'none';
-  $('app-view').style.display = 'block';
-  $('navTabs').style.display = 'flex';
+  $('app-view').style.display = 'flex';
+  $('headerTelemetry').style.display = 'flex';
+  $('topBatchBtns').style.display = 'flex';
   $('logoutBtn').style.display = 'inline-flex';
   $('connPill').className = 'status-pill online';
-  $('connText').textContent = 'Connected (v0.7.0)';
+  $('connText').textContent = 'Connected (8787)';
   refreshAll();
-  if (!pollTimer) pollTimer = setInterval(refreshTelemetry, 3000);
+  if (!pollTimer) pollTimer = setInterval(refreshTelemetry, 2500);
 }
 
 function switchTab(tab) {
-  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  $(`tab-${tab}`).classList.add('active');
-  const btn = Array.from(document.querySelectorAll('.nav-tab')).find(b => b.textContent.toLowerCase().includes(tab));
+  
+  const target = $(`tab-${tab}`);
+  if (target) target.classList.add('active');
+
+  const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.toLowerCase().includes(tab));
   if (btn) btn.classList.add('active');
-  if (tab === 'multiview') loadMultiview();
-  if (tab === 'network') loadNetwork();
-  if (tab === 'hardware') scanHardware();
-  if (tab === 'system') loadSystem();
+
+  if (tab === 'dashboard' || tab === 'encoders' || tab === 'decoders') loadChannels();
+  else if (tab === 'multiview') loadMultiview();
+  else if (tab === 'hardware') scanHardware();
+  else if (tab === 'network') loadNetwork();
+  else if (tab === 'system') loadSystem();
+  else if (tab === 'logs') loadLogs();
+  else if (tab === 'return') loadReturn();
 }
 
 async function connectWithToken() {
@@ -506,63 +1001,129 @@ function disconnect() {
 }
 
 async function refreshAll() {
-  await Promise.allSettled([loadChannels(), loadMultiview(), loadReturn(), loadSystem()]);
+  await Promise.allSettled([loadChannels(), loadMultiview(), loadReturn(), loadSystem(), loadNetwork()]);
 }
 
 async function refreshTelemetry() {
   const activeTab = document.querySelector('.tab-content.active');
+  await loadTopTelemetry();
   if (!activeTab) return;
-  if (activeTab.id === 'tab-channels') loadChannels();
-  else if (activeTab.id === 'tab-multiview') loadMultiview();
-  else if (activeTab.id === 'tab-system') loadSystem();
-  else if (activeTab.id === 'tab-network') loadNetwork();
+
+  if (activeTab.id === 'tab-dashboard' || activeTab.id === 'tab-encoders' || activeTab.id === 'tab-decoders') {
+    loadChannels();
+  } else if (activeTab.id === 'tab-multiview') {
+    loadMultiview();
+  } else if (activeTab.id === 'tab-system') {
+    loadSystem();
+  } else if (activeTab.id === 'tab-network') {
+    loadNetwork();
+  } else if (activeTab.id === 'tab-logs') {
+    loadLogs();
+  }
 }
 
-// Channels
+async function loadTopTelemetry() {
+  try {
+    const s = await api('/api/system');
+    $('topCpuVal').textContent = `${Math.round(s.cpuUsagePercent || 0)}%`;
+    $('topRamVal').textContent = `${s.ramUsedGiB || 0} / ${s.ramTotalGiB || 0} GiB`;
+    if (s.gpuModel) {
+      $('topGpuVal').textContent = s.gpuModel.replace('NVIDIA GeForce ', '').replace('NVIDIA ', '');
+    }
+  } catch (e) {}
+}
+
+// Channels & Encoders & Decoders
+function renderChannelCard(item) {
+  const c = item.config;
+  const m = item.metrics || {};
+  const dirText = c.direction === 0 ? 'Encoder' : 'Decoder';
+  const dirClass = c.direction === 0 ? 'encoder' : 'decoder';
+  const state = c.runtimeState || 'STOPPED';
+  const isRunning = state === 'STREAMING' || state === 'RECEIVING';
+
+  // VU Levels
+  const lvlL = m.audioLevelLeftDb != null ? m.audioLevelLeftDb : -60;
+  const lvlR = m.audioLevelRightDb != null ? m.audioLevelRightDb : -60;
+  const pctL = Math.max(0, Math.min(100, Math.round((lvlL + 60) / 60 * 100)));
+  const pctR = Math.max(0, Math.min(100, Math.round((lvlR + 60) / 60 * 100)));
+  const isClip = m.isAudioClippingLeft || m.isAudioClippingRight;
+  const dbText = isRunning ? (lvlL > -58 ? `${lvlL.toFixed(1)} dB` : 'SILENCE') : '-inf dB';
+
+  const previewUrl = `/api/channels/${c.id}/preview?_=${Date.now()}`;
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="channel-title">
+          <span class="direction-badge ${dirClass}">${dirText}</span>
+          ${c.name}
+        </div>
+        <span class="state-indicator ${state}">${state}</span>
+      </div>
+
+      <div class="channel-preview-box">
+        ${isRunning 
+          ? `<img src="${previewUrl}" onerror="this.outerHTML=getFallbackBarsHtml('${c.name}')">`
+          : getFallbackBarsHtml(c.name)}
+      </div>
+
+      <div class="channel-specs">
+        <div class="spec-item"><span class="spec-label">Format / Source</span><span class="spec-val">${c.direction === 0 ? (c.videoDevice || 'Auto') : 'SDI Playout Port'}</span></div>
+        <div class="spec-item"><span class="spec-label">Resolution &amp; FPS</span><span class="spec-val">${c.width}x${c.height} @ ${c.fps}fps</span></div>
+        <div class="spec-item"><span class="spec-label">Bitrate</span><span class="spec-val">${m.currentBitrateKbps ? Math.round(m.currentBitrateKbps) : c.videoBitrateKbps} kbps</span></div>
+        <div class="spec-item"><span class="spec-label">SRT Mode &amp; Port</span><span class="spec-val">${c.mode === 0 ? 'Caller &rarr; ' + c.host : 'Listener Port ' + c.port}</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="vu-label">
+          <span>AUDIO VU (L/R)</span>
+          <span style="color:${isClip ? 'var(--red)' : '#fff'}; font-weight:700;">${isClip ? 'CLIP &middot; ' : ''}${dbText}</span>
+        </div>
+        <div class="vu-bar-pair">
+          <div class="vu-bar"><div class="vu-fill" style="width:${pctL}%"></div></div>
+          <div class="vu-bar"><div class="vu-fill" style="width:${pctR}%"></div></div>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        ${!isRunning 
+          ? `<button class="success sm" onclick="startChannel('${c.id}')">&#9654; Start</button>`
+          : `<button class="danger sm" onclick="stopChannel('${c.id}')">&#9632; Stop</button><button class="secondary sm" onclick="restartChannel('${c.id}')">&#8635; Restart</button>`}
+        <button class="secondary sm" onclick="editChannel('${c.id}')">Config</button>
+        <button class="secondary sm" style="margin-left:auto;" onclick="deleteChannel('${c.id}')">&#128465; Delete</button>
+      </div>
+    </div>
+  `;
+}
+
 async function loadChannels() {
   try {
     const data = await api('/api/channels');
-    const container = $('channelsContainer');
-    container.innerHTML = '';
-    $('channelSummary').textContent = `${data.length} Channels configured`;
+    allChannelsCache = data;
 
-    data.forEach(item => {
-      const c = item.config;
-      const m = item.metrics || {};
-      const card = document.createElement('div');
-      card.className = 'card';
-      const dirText = c.direction === 0 ? 'Encoder' : 'Decoder';
-      const dirClass = c.direction === 0 ? 'encoder' : 'decoder';
-      const state = c.runtimeState || 'STOPPED';
+    // Update KPI counters
+    const active = data.filter(x => x.config.runtimeState === 'STREAMING' || x.config.runtimeState === 'RECEIVING').length;
+    const encActive = data.filter(x => x.config.direction === 0 && (x.config.runtimeState === 'STREAMING' || x.config.runtimeState === 'RECEIVING')).length;
+    const decActive = data.filter(x => x.config.direction === 1 && (x.config.runtimeState === 'STREAMING' || x.config.runtimeState === 'RECEIVING')).length;
 
-      card.innerHTML = `
-        <div class="card-header">
-          <div class="channel-title">
-            <span class="direction-badge ${dirClass}">${dirText}</span>
-            ${c.name}
-          </div>
-          <span class="state-indicator ${state}">${state}</span>
-        </div>
-        <div class="channel-specs">
-          <div class="spec-item"><span class="spec-label">Format</span><span class="spec-val">${c.width}x${c.height} @ ${c.fps}fps</span></div>
-          <div class="spec-item"><span class="spec-label">Bitrate</span><span class="spec-val">${m.currentBitrateKbps ? Math.round(m.currentBitrateKbps) : c.videoBitrateKbps} kbps</span></div>
-          <div class="spec-item"><span class="spec-label">SRT Target</span><span class="spec-val">${c.mode === 0 ? 'Caller &rarr; ' + c.host : 'Listener on port ' + c.port}</span></div>
-          <div class="spec-item"><span class="spec-label">Latency / Buffer</span><span class="spec-val">${c.latencyMs} ms</span></div>
-        </div>
-        <div class="meter-row">
-          <div class="vu-label"><span>AUDIO VU (L/R)</span><span>${state === 'STREAMING' ? '-18 dB' : '-&infin;'}</span></div>
-          <div class="vu-bar"><div class="vu-fill" style="width:${state === 'STREAMING' ? '68%' : '0%'}"></div></div>
-        </div>
-        <div class="card-actions">
-          ${state === 'STOPPED' 
-            ? `<button class="success" onclick="startChannel('${c.id}')">Start</button>`
-            : `<button class="danger" onclick="stopChannel('${c.id}')">Stop</button><button class="secondary" onclick="restartChannel('${c.id}')">Restart</button>`}
-          <button class="secondary" onclick="editChannel('${c.id}')">Config</button>
-          <button class="secondary" style="margin-left:auto;" onclick="deleteChannel('${c.id}')">Delete</button>
-        </div>
-      `;
-      container.appendChild(card);
-    });
+    $('kpiActiveChannels').textContent = active;
+    $('kpiActiveChannelsSub').textContent = active > 0 ? `${active} stream(s) broadcasting` : 'All channels stopped';
+    $('kpiActiveEncoders').textContent = encActive;
+    $('kpiActiveDecoders').textContent = decActive;
+
+    // Dashboard container
+    $('dashboardChannelSummary').textContent = `${data.length} Channels configured (${active} Live)`;
+    $('dashboardChannelsContainer').innerHTML = data.map(item => renderChannelCard(item)).join('');
+
+    // Encoders container
+    const encData = data.filter(x => x.config.direction === 0);
+    $('encodersContainer').innerHTML = encData.length ? encData.map(item => renderChannelCard(item)).join('') : '<div class="card" style="color:var(--muted)">No encoders configured. Click "+ Add Encoder" to begin.</div>';
+
+    // Decoders container
+    const decData = data.filter(x => x.config.direction === 1);
+    $('decodersContainer').innerHTML = decData.length ? decData.map(item => renderChannelCard(item)).join('') : '<div class="card" style="color:var(--muted)">No decoders configured. Click "+ Add Decoder" to begin.</div>';
+
   } catch (e) {}
 }
 
@@ -570,111 +1131,21 @@ async function startChannel(id) { await api(`/api/channels/${id}/start`, 'POST')
 async function stopChannel(id) { await api(`/api/channels/${id}/stop`, 'POST'); loadChannels(); }
 async function restartChannel(id) { await api(`/api/channels/${id}/restart`, 'POST'); loadChannels(); }
 async function deleteChannel(id) {
-  if (confirm('Delete this channel?')) {
+  if (confirm('Delete this broadcast channel?')) {
     await api(`/api/channels/${id}`, 'DELETE');
     loadChannels();
   }
 }
 
-async function populateVideoInputs(selectEl, selectedVal) {
-  selectEl.innerHTML = '';
-  try {
-    const inputs = await api('/api/hardware/inputs');
-    inputs.forEach(inp => {
-      const opt = document.createElement('option');
-      opt.value = inp.deviceName;
-      opt.textContent = inp.displayName;
-      if (inp.isInUse && inp.deviceName !== selectedVal) {
-        opt.disabled = true;
-      }
-      if (selectedVal && (inp.deviceName === selectedVal || inp.displayName.includes(selectedVal))) {
-        opt.selected = true;
-      }
-      selectEl.appendChild(opt);
-    });
-  } catch (e) {
-    selectEl.innerHTML = '<option value="USB Video">USB Video (DirectShow)</option><option value="testsrc2">Broadcast Test Pattern</option>';
-  }
+async function startAllChannels(direction = null) {
+  const url = direction ? `/api/channels/start-all?direction=${direction}` : '/api/channels/start-all';
+  await api(url, 'POST');
+  loadChannels();
 }
 
-async function openChannelModal() {
-  currentEditingId = null;
-  $('modalTitle').textContent = 'Add Broadcast Channel';
-  $('chanName').value = `CHANNEL ${String(Math.floor(Math.random()*90)+10)}`;
-  $('chanHost').value = '127.0.0.1';
-  $('chanPort').value = 9001;
-  $('chanEncoder').value = 'auto';
-  $('chanVideoCodec').value = 'h264';
-  $('chanResolution').value = '0x0';
-  $('chanFps').value = 0;
-  $('chanBitrate').value = 8000;
-  $('chanStreamId').value = '';
-  $('chanPassphrase').value = '';
-  await populateVideoInputs($('chanVideoDevice'), '');
-  $('channelModal').classList.add('open');
-}
-
-async function editChannel(id) {
-  try {
-    const channels = await api('/api/channels');
-    const item = channels.find(x => x.config.id === id);
-    if (!item) return;
-    const c = item.config;
-    currentEditingId = id;
-    $('modalTitle').textContent = `Configure Channel — ${c.name}`;
-    $('chanName').value = c.name;
-    $('chanDirection').value = c.direction;
-    $('chanMode').value = c.mode;
-    $('chanHost').value = c.host;
-    $('chanPort').value = c.port;
-    $('chanEncoder').value = c.encoder;
-    $('chanVideoCodec').value = c.videoCodec || 'h264';
-    $('chanResolution').value = (c.width > 0 && c.height > 0) ? `${c.width}x${c.height}` : '0x0';
-    $('chanFps').value = c.fps;
-    $('chanBitrate').value = c.videoBitrateKbps;
-    $('chanStreamId').value = c.streamId || '';
-    $('chanPassphrase').value = c.passphrase || '';
-    await populateVideoInputs($('chanVideoDevice'), c.videoDevice);
-    $('channelModal').classList.add('open');
-  } catch (e) {}
-}
-
-function closeChannelModal() { $('channelModal').classList.remove('open'); currentEditingId = null; }
-
-async function saveChannel() {
-  let w = 0, h = 0;
-  const resVal = $('chanResolution').value;
-  if (resVal && resVal !== '0x0') {
-    const parts = resVal.split('x').map(Number);
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-      w = parts[0];
-      h = parts[1];
-    }
-  }
-  let br = Number($('chanBitrate').value);
-  if (br > 0 && br <= 100) br *= 1000;
-  const payload = {
-    name: $('chanName').value,
-    direction: Number($('chanDirection').value),
-    mode: Number($('chanMode').value),
-    host: $('chanHost').value,
-    port: Number($('chanPort').value),
-    videoDevice: $('chanVideoDevice').value,
-    encoder: $('chanEncoder').value,
-    videoCodec: $('chanVideoCodec').value,
-    width: w,
-    height: h,
-    fps: Number($('chanFps').value) || 0,
-    videoBitrateKbps: br > 0 ? br : 8000,
-    streamId: $('chanStreamId').value ? $('chanStreamId').value.trim() : null,
-    passphrase: $('chanPassphrase').value || null
-  };
-  if (currentEditingId) {
-    await api(`/api/channels/${currentEditingId}`, 'PUT', payload);
-  } else {
-    await api('/api/channels', 'POST', payload);
-  }
-  closeChannelModal();
+async function stopAllChannels(direction = null) {
+  const url = direction ? `/api/channels/stop-all?direction=${direction}` : '/api/channels/stop-all';
+  await api(url, 'POST');
   loadChannels();
 }
 
@@ -684,25 +1155,69 @@ async function loadMultiview() {
     const data = await api('/api/multiview');
     const grid = $('multiviewGrid');
     grid.className = `mv-grid ${data.layout}`;
+    if (data.layout === 'Custom') {
+      grid.style.setProperty('--custom-rows', data.customRows || 2);
+      grid.style.setProperty('--custom-cols', data.customColumns || 3);
+    }
     grid.innerHTML = '';
+
+    const channels = allChannelsCache.length ? allChannelsCache : await api('/api/channels');
 
     data.tiles.forEach(t => {
       const tile = document.createElement('div');
-      tile.className = `mv-tile ${t.tallyState === 'PROGRAM' ? 'tally-program' : ''}`;
-      const vuPct = t.isLive ? Math.max(10, Math.min(100, Math.round((Math.max(t.audioLevelLeftDb || -60, t.audioLevelRightDb || -60) + 60) / 60 * 100))) : 0;
+      const isLive = t.isLive;
+      const tallyClass = t.tallyState === 'PROGRAM' ? 'tally-program' : (t.tallyState === 'PREVIEW' ? 'tally-preview' : (isLive ? 'tally-live' : ''));
+      tile.className = `mv-tile ${tallyClass}`;
+
+      // VU Levels & Clipping
+      const lvlL = t.audioLevelLeftDb != null ? t.audioLevelLeftDb : -60;
+      const lvlR = t.audioLevelRightDb != null ? t.audioLevelRightDb : -60;
+      const pctL = Math.max(0, Math.min(100, Math.round((lvlL + 60) / 60 * 100)));
+      const pctR = Math.max(0, Math.min(100, Math.round((lvlR + 60) / 60 * 100)));
+      const isClip = t.isAudioClippingLeft || t.isAudioClippingRight;
+      const dbText = isLive ? (lvlL > -58 ? `${lvlL.toFixed(1)} dB` : 'SILENCE') : 'OFF';
+
+      const previewUrl = t.assignedChannelId ? `/api/channels/${t.assignedChannelId}/preview?_=${Date.now()}` : '';
+
+      // Channel Options Dropdown for Tile Header
+      let optionsHtml = `<option value="">Auto (Slot Order)</option>`;
+      channels.forEach(ch => {
+        const isSel = t.assignedChannelId && ch.config.id === t.assignedChannelId;
+        optionsHtml += `<option value="${ch.config.id}" ${isSel ? 'selected' : ''}>${ch.config.name}</option>`;
+      });
+
       tile.innerHTML = `
         <div class="mv-tile-header">
-          <span>${t.channelName}</span>
-          <span style="font-size:10px; color:${t.isLive ? 'var(--green)' : 'var(--muted)'};">${t.isLive ? '● LIVE' : 'OFF AIR'}</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:var(--blue); font-weight:800;">T${t.tileIndex + 1}</span>
+            <select onchange="assignTileChannel(${t.tileIndex}, this.value)">
+              ${optionsHtml}
+            </select>
+          </div>
+          <span style="font-size:10px; color:${isLive ? 'var(--green)' : 'var(--muted)'}; font-weight:700;">
+            ${isLive ? '● LIVE' : 'OFF AIR'}
+          </span>
         </div>
-        <div style="flex:1; position:relative; overflow:hidden; border-radius:4px; margin:6px 0; background:#04070b; display:flex; align-items:center; justify-content:center; min-height:80px;">
-          ${t.isLive && t.assignedChannelId ? `<img src="/api/channels/${t.assignedChannelId}/preview?_=${Date.now()}" style="position:absolute; width:100%; height:100%; object-fit:cover; z-index:1;" onerror="this.style.display='none'">` : ''}
-          <span style="color:var(--muted); font-size:11px; z-index:0;">${t.isLive ? 'BROADCAST FEED' : 'NO SIGNAL'}</span>
+
+        <div class="mv-tile-viewport">
+          ${isLive && previewUrl 
+            ? `<img src="${previewUrl}" onerror="this.outerHTML=getFallbackBarsHtml('${t.channelName}')">` 
+            : getFallbackBarsHtml(t.channelName)}
+
+          <!-- Vertical Stereo VU Meters -->
+          <div class="mv-vu-container">
+            <div class="mv-vu-clip ${isClip ? 'active' : ''}">CLIP</div>
+            <div class="mv-vu-bars">
+              <div class="mv-vu-vbar"><div class="mv-vu-vfill" style="height:${pctL}%;"></div></div>
+              <div class="mv-vu-vbar"><div class="mv-vu-vfill" style="height:${pctR}%;"></div></div>
+            </div>
+            <div class="mv-vu-db">${dbText}</div>
+          </div>
         </div>
-        <div class="vu-bar" style="height:3px; margin-bottom:6px;"><div class="vu-fill" style="width:${vuPct}%"></div></div>
+
         <div class="mv-tile-footer">
-          <span>${t.resolutionFps}</span>
-          <span>${Math.round(t.bitrateKbps)} kbps</span>
+          <span>${t.resolutionFps || '1920x1080 @ 0p'} &middot; ${Math.round(t.bitrateKbps || 0)} kbps</span>
+          <span>${t.activeHardwareBackend || 'Auto Hardware Direct'}</span>
         </div>
       `;
       grid.appendChild(tile);
@@ -713,6 +1228,52 @@ async function loadMultiview() {
 async function setLayout(name) {
   await api('/api/multiview/layout', 'PUT', name);
   loadMultiview();
+}
+
+async function assignTileChannel(tileIndex, channelId) {
+  await api('/api/multiview/assign', 'PUT', { tileIndex, channelId: channelId || null });
+  loadMultiview();
+}
+
+function openCustomMvModal() {
+  const container = $('customMvAssignmentList');
+  container.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.innerHTML = `
+      <span style="font-weight:700; font-size:12px;">Tile ${i + 1}:</span>
+      <select id="customTileSel_${i}" style="width:260px;" onchange="assignTileChannel(${i}, this.value)">
+        <option value="">Auto (Default Order)</option>
+        ${allChannelsCache.map(ch => `<option value="${ch.config.id}">${ch.config.name} (${ch.config.direction === 0 ? 'ENC' : 'DEC'})</option>`).join('')}
+      </select>
+    `;
+    container.appendChild(row);
+  }
+  $('customMvModal').classList.add('open');
+}
+
+function closeCustomMvModal() {
+  $('customMvModal').classList.remove('open');
+  loadMultiview();
+}
+
+async function applyCustomGridDimensions() {
+  const rows = Number($('customMvRows').value) || 2;
+  const cols = Number($('customMvCols').value) || 3;
+  await api('/api/multiview/custom-grid', 'PUT', { rows, columns: cols });
+  loadMultiview();
+}
+
+function toggleFullscreen() {
+  const grid = $('multiviewGrid');
+  if (!document.fullscreenElement) {
+    grid.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
 }
 
 // Program Return
@@ -753,7 +1314,7 @@ async function startProgramReturn() {
 }
 async function stopProgramReturn() { await api('/api/return/stop', 'POST'); loadReturn(); }
 
-// Hardware
+// Hardware & Diagnostics
 async function scanHardware() {
   try {
     const report = await api('/api/hardware');
@@ -806,15 +1367,6 @@ async function scanHardware() {
         <td><span style="color:var(--green); font-weight:600;">SDI PLAYOUT READY</span></td>
       `;
       tbody.appendChild(pgmTr);
-      const mvTr = document.createElement('tr');
-      mvTr.innerHTML = `
-        <td><strong>Multiview Output</strong></td>
-        <td>${decklinkDevs.length >= 4 ? decklinkDevs[3].model : decklinkDevs[0].model}</td>
-        <td>Port SDI Out 4 (BNC 3G-SDI)</td>
-        <td><span class="status-pill">Output</span></td>
-        <td><span style="color:var(--green); font-weight:600;">SDI PLAYOUT READY</span></td>
-      `;
-      tbody.appendChild(mvTr);
     } else {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -827,6 +1379,17 @@ async function scanHardware() {
       tbody.appendChild(tr);
     }
   } catch (e) {}
+}
+
+async function runDiagnosticTest(testCode) {
+  const terminal = $('diagnosticTerminal');
+  terminal.textContent = `Running Diagnostic Test ${testCode}...\nPlease wait while analyzing broadcast hardware pipeline...`;
+  try {
+    const res = await api('/api/hardware/diagnostic-test', 'POST', { test: testCode, port: 3 });
+    terminal.textContent = res.result;
+  } catch (err) {
+    terminal.textContent = `Test execution failed: ${err.message}`;
+  }
 }
 
 // Network
@@ -857,37 +1420,271 @@ async function loadNetwork() {
   } catch (e) {}
 }
 
-// System
+// System Monitor
 async function loadSystem() {
   try {
     const s = await api('/api/system');
     const c = $('systemMetricsContainer');
     c.innerHTML = `
-      <div class="card">
-        <h4 style="margin-top:0;">Platform &amp; CPU</h4>
-        <div style="font-size:18px; font-weight:700;">${s.cpuModel}</div>
-        <p class="subtitle">${s.platform} &middot; ${s.cpuCores} Logical Cores</p>
+      <div class="kpi-card">
+        <div class="kpi-title">Platform &amp; CPU</div>
+        <div style="font-size:16px; font-weight:700; color:#fff;">${s.cpuModel || 'Intel / AMD Processor'}</div>
+        <div class="kpi-sub">${s.platform} &middot; ${s.cpuCores || 8} Logical Cores</div>
       </div>
-      <div class="card">
-        <h4 style="margin-top:0;">Memory (RAM)</h4>
-        <div style="font-size:24px; font-weight:700; color:var(--blue);">${s.ramUsedGiB} / ${s.ramTotalGiB} GiB</div>
-        <p class="subtitle">${Math.round(s.ramUsagePercent)}% utilized</p>
+      <div class="kpi-card">
+        <div class="kpi-title">Memory (RAM)</div>
+        <div class="kpi-value" style="color:var(--blue);">${s.ramUsedGiB} / ${s.ramTotalGiB} GiB</div>
+        <div class="kpi-sub">${Math.round(s.ramUsagePercent)}% utilized</div>
       </div>
-      <div class="card">
-        <h4 style="margin-top:0;">GPU Acceleration</h4>
-        <div style="font-size:18px; font-weight:700;">${s.gpuAvailable ? s.gpuModel : 'CPU Software Mode'}</div>
-        <p class="subtitle">${s.gpuAvailable ? `VRAM: ${s.vramUsedGiB}/${s.vramTotalGiB} GiB &middot; Temp: ${s.gpuTemperatureC}&deg;C` : 'NVENC hardware encoder not detected'}</p>
+      <div class="kpi-card">
+        <div class="kpi-title">GPU Acceleration</div>
+        <div style="font-size:16px; font-weight:700; color:#fff;">${s.gpuAvailable ? s.gpuModel : 'CPU Software Mode'}</div>
+        <div class="kpi-sub">${s.gpuAvailable ? `VRAM: ${s.vramUsedGiB}/${s.vramTotalGiB} GiB &middot; Temp: ${s.gpuTemperatureC}&deg;C` : 'NVENC hardware encoder not detected'}</div>
       </div>
-      <div class="card">
-        <h4 style="margin-top:0;">Active Pipelines</h4>
-        <div style="font-size:24px; font-weight:700; color:var(--green);">${s.activeChannels} Streams</div>
-        <p class="subtitle">${s.activeEncoders} Encoders &middot; ${s.activeDecoders} Decoders</p>
+      <div class="kpi-card">
+        <div class="kpi-title">Active Pipelines</div>
+        <div class="kpi-value" style="color:var(--green);">${s.activeChannels} Streams</div>
+        <div class="kpi-sub">${s.activeEncoders} Encoders &middot; ${s.activeDecoders} Decoders</div>
       </div>
     `;
   } catch (e) {}
 }
 
-// Health status check
+// Logs
+async function loadLogs() {
+  try {
+    const data = await api('/api/logs?limit=300');
+    allLogsCache = data || [];
+    renderLogs();
+  } catch (e) {}
+}
+
+function setLogCategory(cat) {
+  selectedLogCategory = cat;
+  renderLogs();
+}
+
+function filterLogs() {
+  renderLogs();
+}
+
+function renderLogs() {
+  const terminal = $('logsTerminal');
+  const search = ($('logSearchInput').value || '').toLowerCase();
+  let filtered = allLogsCache;
+
+  if (selectedLogCategory !== 'ALL') {
+    filtered = filtered.filter(l => (l.category || '').toUpperCase() === selectedLogCategory);
+  }
+  if (search) {
+    filtered = filtered.filter(l => (l.message || '').toLowerCase().includes(search) || (l.formatted || '').toLowerCase().includes(search));
+  }
+
+  if (filtered.length === 0) {
+    terminal.textContent = 'No log entries match the selected filter.';
+    return;
+  }
+
+  terminal.innerHTML = filtered.map(l => {
+    let color = '#94a3b8';
+    if (l.category === 'ENCODER') color = '#38bdf8';
+    else if (l.category === 'DECODER') color = '#fbbf24';
+    else if (l.category === 'SRT') color = '#a78bfa';
+    else if (l.category === 'HARDWARE') color = '#34d399';
+    else if (l.category === 'CONFLICT') color = '#f87171';
+    return `<div style="margin-bottom:2px;"><span style="color:#64748b;">${l.formatted ? l.formatted.substring(0, 14) : ''}</span> <span style="color:${color}; font-weight:700;">[${l.category}]</span> ${escapeHtml(l.message)}</div>`;
+  }).join('');
+
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function clearLogs() {
+  await api('/api/logs', 'DELETE');
+  allLogsCache = [];
+  renderLogs();
+}
+
+function exportLogs() {
+  const text = allLogsCache.map(l => l.formatted || l.message).join('\n');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `GDI_SRT_Broadcast_Logs_${Date.now()}.log`;
+  a.click();
+}
+
+// Settings
+async function saveNodeSettings() {
+  const limit = Number($('setChannelLimit').value) || 4;
+  const latency = Number($('setDefaultLatency').value) || 250;
+  const token = $('setNewToken').value.trim();
+
+  await api('/api/settings', 'PUT', { channelLimit: limit, defaultSrtLatencyMs: latency });
+  if (token) {
+    apiToken = token;
+    localStorage.setItem('gdi_api_token', apiToken);
+  }
+  alert('Node Settings saved successfully.');
+}
+
+// Channel Modal Logic
+function onDirectionChanged() {
+  const dir = Number($('chanDirection').value);
+  if (dir === 0) {
+    $('chanSourceLabel').textContent = 'Video Input / Capture Device';
+    populateVideoInputs($('chanVideoDevice'), '');
+  } else {
+    $('chanSourceLabel').textContent = 'Playout Target (SDI Out / NDI)';
+    $('chanVideoDevice').innerHTML = `
+      <option value="SDI Out 3">DeckLink SDI Out 3 (Port 3)</option>
+      <option value="SDI Out 4">DeckLink SDI Out 4 (Port 4)</option>
+      <option value="preview">Window Preview</option>
+      <option value="multiview">Multiview Pipeline Direct</option>
+    `;
+  }
+}
+
+async function populateVideoInputs(selectEl, selectedVal) {
+  selectEl.innerHTML = '';
+  try {
+    const inputs = await api('/api/hardware/inputs');
+    inputs.forEach(inp => {
+      const opt = document.createElement('option');
+      opt.value = inp.deviceName;
+      opt.textContent = inp.displayName;
+      if (inp.isInUse && inp.deviceName !== selectedVal) {
+        opt.disabled = true;
+      }
+      if (selectedVal && (inp.deviceName === selectedVal || inp.displayName.includes(selectedVal))) {
+        opt.selected = true;
+      }
+      selectEl.appendChild(opt);
+    });
+  } catch (e) {
+    selectEl.innerHTML = '<option value="USB Video">USB Video (DirectShow)</option><option value="testsrc2">Broadcast Test Pattern</option>';
+  }
+}
+
+async function openChannelModal(defaultDirection = 0) {
+  currentEditingId = null;
+  $('modalTitle').textContent = defaultDirection === 0 ? 'Add Broadcast Encoder' : 'Add Broadcast Decoder';
+  $('chanName').value = defaultDirection === 0 ? `CAM ${Math.floor(Math.random()*8)+1}` : `RCV ${Math.floor(Math.random()*8)+1}`;
+  $('chanDirection').value = defaultDirection;
+  $('chanMode').value = defaultDirection === 0 ? 0 : 1;
+  $('chanHost').value = '127.0.0.1';
+  $('chanPort').value = 9000 + (allChannelsCache.length + 1);
+  $('chanEncoder').value = 'auto';
+  $('chanVideoCodec').value = 'h264';
+  $('chanProfile').value = 'HighQuality';
+  $('chanResolution').value = '0x0';
+  $('chanFps').value = 0;
+  $('chanBitrate').value = 8000;
+  $('chanAudioBitrate').value = '128';
+  $('chanLatency').value = 250;
+  $('chanStreamId').value = '';
+  $('chanPassphrase').value = '';
+
+  onDirectionChanged();
+  $('channelModal').classList.add('open');
+}
+
+async function editChannel(id) {
+  try {
+    const channels = await api('/api/channels');
+    const item = channels.find(x => x.config.id === id);
+    if (!item) return;
+    const c = item.config;
+    currentEditingId = id;
+    $('modalTitle').textContent = `Configure Channel — ${c.name}`;
+    $('chanName').value = c.name;
+    $('chanDirection').value = c.direction;
+    $('chanMode').value = c.mode;
+    $('chanHost').value = c.host;
+    $('chanPort').value = c.port;
+    $('chanEncoder').value = c.encoder;
+    $('chanVideoCodec').value = c.videoCodec || 'h264';
+    $('chanProfile').value = c.qualityProfile || 'HighQuality';
+    $('chanResolution').value = (c.width > 0 && c.height > 0) ? `${c.width}x${c.height}` : '0x0';
+    $('chanFps').value = c.fps;
+    $('chanBitrate').value = c.videoBitrateKbps;
+    $('chanAudioBitrate').value = String(c.audioBitrateKbps || 128);
+    $('chanLatency').value = c.latencyMs;
+    $('chanStreamId').value = c.streamId || '';
+    $('chanPassphrase').value = c.passphrase || '';
+
+    if (c.direction === 0) {
+      $('chanSourceLabel').textContent = 'Video Input / Capture Device';
+      await populateVideoInputs($('chanVideoDevice'), c.videoDevice);
+    } else {
+      $('chanSourceLabel').textContent = 'Playout Target (SDI Out / NDI)';
+      $('chanVideoDevice').innerHTML = `
+        <option value="SDI Out 3">DeckLink SDI Out 3 (Port 3)</option>
+        <option value="SDI Out 4">DeckLink SDI Out 4 (Port 4)</option>
+        <option value="preview">Window Preview</option>
+        <option value="multiview">Multiview Pipeline Direct</option>
+      `;
+      $('chanVideoDevice').value = c.outputTarget || 'preview';
+    }
+
+    $('channelModal').classList.add('open');
+  } catch (e) {}
+}
+
+function closeChannelModal() {
+  $('channelModal').classList.remove('open');
+  currentEditingId = null;
+}
+
+async function saveChannel() {
+  let w = 0, h = 0;
+  const resVal = $('chanResolution').value;
+  if (resVal && resVal !== '0x0') {
+    const parts = resVal.split('x').map(Number);
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      w = parts[0];
+      h = parts[1];
+    }
+  }
+  let br = Number($('chanBitrate').value);
+  if (br > 0 && br <= 100) br *= 1000;
+
+  const dir = Number($('chanDirection').value);
+  const payload = {
+    name: $('chanName').value,
+    direction: dir,
+    mode: Number($('chanMode').value),
+    host: $('chanHost').value,
+    port: Number($('chanPort').value),
+    videoDevice: dir === 0 ? $('chanVideoDevice').value : 'testsrc2',
+    outputTarget: dir === 1 ? $('chanVideoDevice').value : 'preview',
+    encoder: $('chanEncoder').value,
+    videoCodec: $('chanVideoCodec').value,
+    qualityProfile: $('chanProfile').value,
+    width: w,
+    height: h,
+    fps: Number($('chanFps').value) || 0,
+    videoBitrateKbps: br > 0 ? br : 8000,
+    audioBitrateKbps: Number($('chanAudioBitrate').value) || 128,
+    latencyMs: Number($('chanLatency').value) || 250,
+    streamId: $('chanStreamId').value ? $('chanStreamId').value.trim() : null,
+    passphrase: $('chanPassphrase').value || null
+  };
+
+  if (currentEditingId) {
+    await api(`/api/channels/${currentEditingId}`, 'PUT', payload);
+  } else {
+    await api('/api/channels', 'POST', payload);
+  }
+  closeChannelModal();
+  loadChannels();
+}
+
+// Health check
 async function checkNodeHealth() {
   const badge = $('nodeHealthBadge');
   const text = $('nodeHealthText');
@@ -899,7 +1696,7 @@ async function checkNodeHealth() {
       return true;
     }
   } catch (e) {
-    if (badge) badge.className = 'status-pill';
+    if (badge) badge.className = 'status-pill offline';
     if (text) text.textContent = 'Node Offline';
   }
   return false;
@@ -912,15 +1709,14 @@ function applyWebFont(fontFamily) {
   if ($('setUiFont')) $('setUiFont').value = fontFamily;
 }
 
-// Init
+// Initial Boot
 window.addEventListener('DOMContentLoaded', async () => {
   const savedFont = localStorage.getItem('gdi_ui_font');
-  if (savedFont) {
-    applyWebFont(savedFont);
-  }
+  if (savedFont) applyWebFont(savedFont);
 
   if (!apiToken) apiToken = 'GDI-SRT-2026';
   $('apiTokenInput').value = apiToken;
+
   try {
     const status = await fetch('/api/auth/status').then(r => r.json()).catch(() => null);
     if (status && status.defaultToken && !localStorage.getItem('gdi_api_token')) {
@@ -928,6 +1724,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       $('apiTokenInput').value = apiToken;
     }
   } catch {}
+
   await checkNodeHealth();
   connectWithToken();
 
