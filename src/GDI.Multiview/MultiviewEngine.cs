@@ -1,5 +1,6 @@
 using System.Text.Json;
 using GDI.Core.Models;
+using GDI.Core.Services;
 
 namespace GDI.Multiview;
 
@@ -75,7 +76,7 @@ public sealed class MultiviewEngine : IMultiviewEngine
 
     public MultiviewEngine()
     {
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "config");
+        var dir = GdiEnvironment.GetConfigDirectory();
         try { Directory.CreateDirectory(dir); } catch { }
         _configFilePath = Path.Combine(dir, "multiview.json");
         LoadConfig();
@@ -220,7 +221,7 @@ public sealed class MultiviewEngine : IMultiviewEngine
                 tile.PreviewFps = m.PreviewFps > 0 ? m.PreviewFps : (tile.IsLive ? ch.Fps : 0);
                 tile.ActiveHardwareBackend = m.ActiveHardwareBackend;
 
-                var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
+                var previewDir = GdiEnvironment.GetPreviewsDirectory();
                 var previewPath = Path.Combine(previewDir, $"{ch.Id:N}.jpg");
                 tile.PreviewImagePath = previewPath;
                 tile.HasPreviewImage = File.Exists(previewPath);

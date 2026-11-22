@@ -12,7 +12,9 @@ public sealed record CodecCapability(
     bool Libx264,
     bool Libx265,
     string PreferredH264,
-    string PreferredHevc
+    string PreferredHevc,
+    bool H264Vaapi = false,
+    bool HevcVaapi = false
 );
 
 public sealed class HardwareEncoderDetector
@@ -35,16 +37,18 @@ public sealed class HardwareEncoderDetector
         var hevcQsv = encoders.Contains("hevc_qsv") && await ProbeEncoderAsync("hevc_qsv");
         var h264Amf = encoders.Contains("h264_amf") && await ProbeEncoderAsync("h264_amf");
         var hevcAmf = encoders.Contains("hevc_amf") && await ProbeEncoderAsync("hevc_amf");
+        var h264Vaapi = OperatingSystem.IsLinux() && encoders.Contains("h264_vaapi") && await ProbeEncoderAsync("h264_vaapi");
+        var hevcVaapi = OperatingSystem.IsLinux() && encoders.Contains("hevc_vaapi") && await ProbeEncoderAsync("hevc_vaapi");
         var h264Vt = encoders.Contains("h264_videotoolbox") && await ProbeEncoderAsync("h264_videotoolbox");
         var hevcVt = encoders.Contains("hevc_videotoolbox") && await ProbeEncoderAsync("hevc_videotoolbox");
         var libx264 = encoders.Contains("libx264");
         var libx265 = encoders.Contains("libx265");
 
-        var prefH264 = h264Nvenc ? "h264_nvenc" : h264Qsv ? "h264_qsv" : h264Amf ? "h264_amf" : h264Vt ? "h264_videotoolbox" : "libx264";
-        var prefHevc = hevcNvenc ? "hevc_nvenc" : hevcQsv ? "hevc_qsv" : hevcAmf ? "hevc_amf" : hevcVt ? "hevc_videotoolbox" : "libx265";
+        var prefH264 = h264Nvenc ? "h264_nvenc" : h264Qsv ? "h264_qsv" : h264Amf ? "h264_amf" : h264Vaapi ? "h264_vaapi" : h264Vt ? "h264_videotoolbox" : "libx264";
+        var prefHevc = hevcNvenc ? "hevc_nvenc" : hevcQsv ? "hevc_qsv" : hevcAmf ? "hevc_amf" : hevcVaapi ? "hevc_vaapi" : hevcVt ? "hevc_videotoolbox" : "libx265";
 
         return new CodecCapability(
-            h264Nvenc, hevcNvenc, h264Qsv, hevcQsv, h264Amf, hevcAmf, libx264, libx265, prefH264, prefHevc
+            h264Nvenc, hevcNvenc, h264Qsv, hevcQsv, h264Amf, hevcAmf, libx264, libx265, prefH264, prefHevc, h264Vaapi, hevcVaapi
         );
     }
 

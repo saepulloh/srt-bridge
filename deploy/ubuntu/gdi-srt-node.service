@@ -21,8 +21,9 @@ NoNewPrivileges=true
 
 Environment=DOTNET_ENVIRONMENT=Production
 Environment=GDI_Urls=http://0.0.0.0:8787
-Environment=GDI_ConfigDir=/etc/gdi/config
-Environment=GDI_VaultPath=/etc/gdi/security/vault.dat
+Environment=GDI_DATA_DIR=/var/lib/gdi
+Environment=GDI_ConfigDir=/var/lib/gdi/config
+Environment=GDI_VaultPath=/var/lib/gdi/security/vault.dat
 
 [Install]
 WantedBy=multi-user.target

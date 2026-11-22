@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GDI.Core.Services;
 
 namespace GDI.Core.Storage;
 
@@ -20,9 +21,7 @@ public sealed class JsonConfigurationStore : IConfigurationStore
         }
         else
         {
-            _baseDirectory = OperatingSystem.IsWindows()
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "config")
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gdi", "config");
+            _baseDirectory = GdiEnvironment.GetConfigDirectory();
         }
 
         Directory.CreateDirectory(_baseDirectory);

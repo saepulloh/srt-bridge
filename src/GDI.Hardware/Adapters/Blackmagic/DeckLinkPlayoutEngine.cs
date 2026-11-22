@@ -334,7 +334,34 @@ public static class DeckLinkPlayoutEngine
     {
         if (!OperatingSystem.IsWindows())
         {
-            logAction?.Invoke("[SDI PLAYOUT] Native DeckLink is only supported on Windows.");
+            logAction?.Invoke($"[SDI PLAYOUT LINUX] Operating in Linux raw stream mode on Port {targetPort} ({width}x{height} @ {fps}p {pixelFormatName})...");
+            int frameBytes = pixelFormatName.Equals("v210", StringComparison.OrdinalIgnoreCase)
+                ? ((width + 47) / 48) * 128 * height
+                : width * height * 2; // UYVY 4:2:2
+
+            byte[] frameBuf = new byte[frameBytes];
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    int totalRead = 0;
+                    while (totalRead < frameBytes)
+                    {
+                        int r = await rawVideoInputStream.ReadAsync(frameBuf.AsMemory(totalRead, frameBytes - totalRead), ct);
+                        if (r <= 0) break;
+                        totalRead += r;
+                    }
+
+                    if (totalRead < frameBytes) break;
+
+                    onFrameDecoded?.Invoke(frameBuf, width, height, pixelFormatName);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                logAction?.Invoke($"[SDI PLAYOUT LINUX] Playout loop ended: {ex.Message}");
+            }
             return;
         }
 

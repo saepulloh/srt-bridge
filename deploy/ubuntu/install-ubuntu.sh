@@ -4,7 +4,7 @@ set -euo pipefail
 
 echo "=========================================================="
 echo " GDI SRT EMBEDDED — Linux Deployment Installer"
-echo " Global Data Indonesia — Version 0.7.0"
+echo " Global Data Indonesia — Version 1.0.0 NATIVE"
 echo "=========================================================="
 
 if [ "$EUID" -ne 0 ]; then

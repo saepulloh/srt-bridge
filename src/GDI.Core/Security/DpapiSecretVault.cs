@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using GDI.Core.Services;
 
 namespace GDI.Core.Security;
 
@@ -22,10 +23,7 @@ public sealed class DpapiSecretVault : ISecretVault
         }
         else
         {
-            var baseDir = OperatingSystem.IsWindows()
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "security")
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gdi", "security");
-
+            var baseDir = GdiEnvironment.GetSecurityDirectory();
             Directory.CreateDirectory(baseDir);
             _vaultPath = Path.Combine(baseDir, "vault.dat");
         }

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using GDI.Core.Events;
 using GDI.Core.Models;
+using GDI.Core.Services;
 using GDI.SRT.Engine;
 
 namespace GDI.Encoder;
@@ -56,7 +57,7 @@ public sealed class EncoderEngine : IEncoderEngine
                 stale.Dispose();
             }
 
-            bool isDecklink = channel.InputBackend == "dshow" &&
+            bool isDecklink = (channel.InputBackend == "dshow" || channel.InputBackend == "decklink") &&
                               (channel.VideoDevice.Contains("Decklink", StringComparison.OrdinalIgnoreCase) ||
                                channel.VideoDevice.Contains("Blackmagic", StringComparison.OrdinalIgnoreCase));
 
@@ -232,6 +233,9 @@ public sealed class EncoderEngine : IEncoderEngine
         if (requested == "amf")
             return isH265 ? (caps.HevcAmf ? "hevc_amf" : caps.PreferredHevc) : (caps.H264Amf ? "h264_amf" : caps.PreferredH264);
 
+        if (requested == "vaapi")
+            return isH265 ? (caps.HevcVaapi ? "hevc_vaapi" : caps.PreferredHevc) : (caps.H264Vaapi ? "h264_vaapi" : caps.PreferredH264);
+
         if (requested == "cpu")
             return isH265 ? "libx265" : "libx264";
 
@@ -302,13 +306,18 @@ public sealed class EncoderEngine : IEncoderEngine
                     RedirectStandardError = true,
                     RedirectStandardOutput = true
                 };
+                string probeBackend = OperatingSystem.IsWindows() ? "dshow" : (videoDevice.StartsWith("/dev/video", StringComparison.OrdinalIgnoreCase) ? "v4l2" : "decklink");
                 psi.ArgumentList.Add("-hide_banner");
                 psi.ArgumentList.Add("-loglevel"); psi.ArgumentList.Add("error");
-                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("dshow");
+                psi.ArgumentList.Add("-f"); psi.ArgumentList.Add(probeBackend);
                 psi.ArgumentList.Add("-video_size"); psi.ArgumentList.Add($"{w}x{h}");
                 psi.ArgumentList.Add("-framerate"); psi.ArgumentList.Add(fps.ToString());
-                psi.ArgumentList.Add("-pixel_format"); psi.ArgumentList.Add("uyvy422");
-                psi.ArgumentList.Add("-i"); psi.ArgumentList.Add($"video={videoDevice}");
+                if (probeBackend != "decklink")
+                {
+                    psi.ArgumentList.Add("-pixel_format"); psi.ArgumentList.Add("uyvy422");
+                }
+                psi.ArgumentList.Add("-i");
+                psi.ArgumentList.Add(probeBackend == "dshow" ? $"video={videoDevice}" : videoDevice);
                 psi.ArgumentList.Add("-vframes"); psi.ArgumentList.Add("1");
                 psi.ArgumentList.Add("-f"); psi.ArgumentList.Add("null");
                 psi.ArgumentList.Add("-");
@@ -397,6 +406,22 @@ public sealed class EncoderEngine : IEncoderEngine
             yield return string.IsNullOrWhiteSpace(audioDev)
                 ? $"video={c.VideoDevice}"
                 : $"video={c.VideoDevice}:audio={audioDev}";
+        }
+        else if (c.InputBackend == "decklink")
+        {
+            yield return "-f"; yield return "decklink";
+            int fps = overrideFps ?? (c.Fps > 0 ? c.Fps : 50);
+            int w = overrideWidth ?? (c.Width > 0 ? c.Width : 1920);
+            int h = overrideHeight ?? (c.Height > 0 ? c.Height : 1080);
+            if (fps > 0)
+            {
+                yield return "-framerate"; yield return fps.ToString();
+            }
+            if (w > 0 && h > 0)
+            {
+                yield return "-video_size"; yield return $"{w}x{h}";
+            }
+            yield return "-i"; yield return c.VideoDevice;
         }
         else if (c.InputBackend == "v4l2")
         {
@@ -540,6 +565,12 @@ public sealed class EncoderEngine : IEncoderEngine
             yield return "-bf"; yield return "0";
             yield return "-g"; yield return gop.ToString();
         }
+        else if (encoder.EndsWith("_vaapi", StringComparison.Ordinal))
+        {
+            yield return "-vaapi_device"; yield return "/dev/dri/renderD128";
+            yield return "-bf"; yield return "0";
+            yield return "-g"; yield return gop.ToString();
+        }
         else if (encoder.EndsWith("_videotoolbox", StringComparison.Ordinal))
         {
             yield return "-realtime"; yield return "1";
@@ -594,7 +625,7 @@ public sealed class EncoderEngine : IEncoderEngine
         yield return SrtUriBuilder.BuildFromChannel(c);
 
         // Output 2: Live preview snapshot for Multiview & Video Cards Monitoring (crisp 960x540)
-        var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
+        var previewDir = GdiEnvironment.GetPreviewsDirectory();
         try { Directory.CreateDirectory(previewDir); } catch { }
         var previewFile = Path.Combine(previewDir, $"{c.Id:N}.jpg").Replace('\\', '/');
 

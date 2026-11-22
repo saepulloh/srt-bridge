@@ -2,7 +2,7 @@
 # Build Debian Package (.deb) for GDI SRT Embedded
 set -euo pipefail
 
-VERSION="0.7.0"
+VERSION="1.0.0"
 PKG_DIR="gdi-srt-embedded_${VERSION}_amd64"
 
 echo "[*] Building Debian package: ${PKG_DIR}.deb"

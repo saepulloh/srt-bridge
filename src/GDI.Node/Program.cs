@@ -45,23 +45,31 @@ builder.Configuration.AddEnvironmentVariables("GDI_");
 var listenUrl = builder.Configuration["Urls"] ?? $"http://{builder.Configuration["WebRemoteBindAddress"] ?? "0.0.0.0"}:{builder.Configuration["WebRemotePort"] ?? "8787"}";
 builder.WebHost.UseUrls(listenUrl);
 
-// Resolve FFmpeg & FFplay binary paths
+// Resolve FFmpeg & FFplay binary paths cross-platform (Windows & Linux)
+var exeSuffix = OperatingSystem.IsWindows() ? ".exe" : "";
 var ffmpegPath = Environment.GetEnvironmentVariable("GDI_FFMPEG_PATH")
     ?? builder.Configuration["FfmpegPath"]
-    ?? Path.Combine(AppContext.BaseDirectory, "tools", "ffmpeg", "bin", "ffmpeg.exe");
+    ?? Path.Combine(AppContext.BaseDirectory, "tools", "ffmpeg", "bin", $"ffmpeg{exeSuffix}");
 
 if (!File.Exists(ffmpegPath))
 {
-    var systemFfmpeg = Path.Combine(Directory.GetCurrentDirectory(), "tools", "ffmpeg", "bin", "ffmpeg.exe");
-    if (File.Exists(systemFfmpeg)) ffmpegPath = systemFfmpeg;
+    var localTool = Path.Combine(Directory.GetCurrentDirectory(), "tools", "ffmpeg", "bin", $"ffmpeg{exeSuffix}");
+    if (File.Exists(localTool)) ffmpegPath = localTool;
+    else if (File.Exists("/usr/bin/ffmpeg")) ffmpegPath = "/usr/bin/ffmpeg";
+    else if (File.Exists("/usr/local/bin/ffmpeg")) ffmpegPath = "/usr/local/bin/ffmpeg";
     else ffmpegPath = "ffmpeg";
 }
 
 var ffplayPath = Environment.GetEnvironmentVariable("GDI_FFPLAY_PATH")
     ?? builder.Configuration["FfplayPath"]
-    ?? Path.Combine(Path.GetDirectoryName(ffmpegPath)!, "ffplay.exe");
+    ?? Path.Combine(Path.GetDirectoryName(ffmpegPath)!, $"ffplay{exeSuffix}");
 
-if (!File.Exists(ffplayPath)) ffplayPath = "ffplay";
+if (!File.Exists(ffplayPath))
+{
+    if (File.Exists("/usr/bin/ffplay")) ffplayPath = "/usr/bin/ffplay";
+    else if (File.Exists("/usr/local/bin/ffplay")) ffplayPath = "/usr/local/bin/ffplay";
+    else ffplayPath = "ffplay";
+}
 
 // Register Core broadcast services
 builder.Services.AddSingleton<IConfigurationStore, JsonConfigurationStore>(_ =>
@@ -396,7 +404,7 @@ app.MapGet("/api/channels/{id:guid}/metrics", (Guid id, IChannelManager manager)
 
 app.MapGet("/api/channels/{id:guid}/preview", (Guid id) =>
 {
-    var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
+    var previewDir = GdiEnvironment.GetPreviewsDirectory();
     var previewFile = Path.Combine(previewDir, $"{id:N}.jpg");
     if (File.Exists(previewFile))
     {
@@ -585,6 +593,8 @@ try
     var existingChannels = chMgr.GetAll();
     var choices = await hwReg.GetVideoInputChoicesAsync();
     var bmdInputs = choices.Where(c => c.Vendor.Equals("Blackmagic Design", StringComparison.OrdinalIgnoreCase)).ToList();
+    var defaultLinuxBackend = File.Exists("/dev/video0") ? "v4l2" : "lavfi";
+    var defaultLinuxDevice = File.Exists("/dev/video0") ? "/dev/video0" : "testsrc2";
 
     for (int i = 0; i < existingChannels.Count; i++)
     {
@@ -595,19 +605,19 @@ try
             if (bmdInputs.Count >= portNum)
             {
                 ch.VideoDevice = bmdInputs[portNum - 1].DeviceName;
-                ch.AudioDevice = bmdInputs[portNum - 1].DeviceName.Replace("Video", "Audio");
-                ch.InputBackend = "dshow";
+                ch.AudioDevice = OperatingSystem.IsWindows() ? bmdInputs[portNum - 1].DeviceName.Replace("Video", "Audio") : null;
+                ch.InputBackend = bmdInputs[portNum - 1].Backend;
             }
             else if (bmdInputs.Count > 0)
             {
                 ch.VideoDevice = bmdInputs[0].DeviceName;
-                ch.AudioDevice = bmdInputs[0].DeviceName.Replace("Video", "Audio");
-                ch.InputBackend = "dshow";
+                ch.AudioDevice = OperatingSystem.IsWindows() ? bmdInputs[0].DeviceName.Replace("Video", "Audio") : null;
+                ch.InputBackend = bmdInputs[0].Backend;
             }
             else
             {
-                ch.VideoDevice = "testsrc2";
-                ch.InputBackend = "lavfi";
+                ch.VideoDevice = OperatingSystem.IsWindows() ? "testsrc2" : defaultLinuxDevice;
+                ch.InputBackend = OperatingSystem.IsWindows() ? "lavfi" : defaultLinuxBackend;
             }
             await chMgr.AddOrUpdateAsync(ch);
         }
@@ -615,17 +625,17 @@ try
 
     if (existingChannels.Count == 0)
     {
-        var ch1Device = bmdInputs.Count >= 1 ? bmdInputs[0].DeviceName : "testsrc2";
-        var ch1Backend = bmdInputs.Count >= 1 ? "dshow" : "lavfi";
-        var ch1Audio = bmdInputs.Count >= 1 ? bmdInputs[0].DeviceName.Replace("Video", "Audio") : null;
+        var ch1Device = bmdInputs.Count >= 1 ? bmdInputs[0].DeviceName : (OperatingSystem.IsWindows() ? "testsrc2" : defaultLinuxDevice);
+        var ch1Backend = bmdInputs.Count >= 1 ? bmdInputs[0].Backend : (OperatingSystem.IsWindows() ? "lavfi" : defaultLinuxBackend);
+        var ch1Audio = bmdInputs.Count >= 1 && OperatingSystem.IsWindows() ? bmdInputs[0].DeviceName.Replace("Video", "Audio") : null;
 
         var ch2Device = bmdInputs.Count >= 2 ? bmdInputs[1].DeviceName : (bmdInputs.Count >= 1 ? bmdInputs[0].DeviceName : "testsrc2");
-        var ch2Backend = bmdInputs.Count >= 2 ? "dshow" : (bmdInputs.Count >= 1 ? "dshow" : "lavfi");
-        var ch2Audio = bmdInputs.Count >= 2 ? bmdInputs[1].DeviceName.Replace("Video", "Audio") : null;
+        var ch2Backend = bmdInputs.Count >= 2 ? bmdInputs[1].Backend : (bmdInputs.Count >= 1 ? bmdInputs[0].Backend : "lavfi");
+        var ch2Audio = bmdInputs.Count >= 2 && OperatingSystem.IsWindows() ? bmdInputs[1].DeviceName.Replace("Video", "Audio") : null;
 
         var ch3Device = bmdInputs.Count >= 3 ? bmdInputs[2].DeviceName : (bmdInputs.Count >= 1 ? bmdInputs[0].DeviceName : "testsrc2");
-        var ch3Backend = bmdInputs.Count >= 3 ? "dshow" : (bmdInputs.Count >= 1 ? "dshow" : "lavfi");
-        var ch3Audio = bmdInputs.Count >= 3 ? bmdInputs[2].DeviceName.Replace("Video", "Audio") : null;
+        var ch3Backend = bmdInputs.Count >= 3 ? bmdInputs[2].Backend : (bmdInputs.Count >= 1 ? bmdInputs[0].Backend : "lavfi");
+        var ch3Audio = bmdInputs.Count >= 3 && OperatingSystem.IsWindows() ? bmdInputs[2].DeviceName.Replace("Video", "Audio") : null;
 
         await chMgr.AddOrUpdateAsync(new ChannelConfig { Name = "PGM 01 — MAIN", Port = 9001, VideoBitrateKbps = 8000, VideoDevice = ch1Device, InputBackend = ch1Backend, AudioDevice = ch1Audio });
         await chMgr.AddOrUpdateAsync(new ChannelConfig { Name = "PGM 02 — CAM A", Port = 9002, VideoBitrateKbps = 6000, VideoDevice = ch2Device, InputBackend = ch2Backend, AudioDevice = ch2Audio });

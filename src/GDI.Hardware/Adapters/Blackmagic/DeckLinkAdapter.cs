@@ -74,22 +74,33 @@ public sealed class DeckLinkAdapter : IHardwareIoProvider
 
     public static bool CheckDesktopVideoDriver()
     {
-        if (!OperatingSystem.IsWindows()) return false;
-        try
+        if (OperatingSystem.IsWindows())
         {
-            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Blackmagic Design\DeckLink");
-            if (key != null) return true;
+            try
+            {
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Blackmagic Design\DeckLink");
+                if (key != null) return true;
 
-            var defaultDll = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "Blackmagic Design", "Blackmagic Desktop Video", "DeckLinkAPI64.dll");
+                var defaultDll = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "Blackmagic Design", "Blackmagic Desktop Video", "DeckLinkAPI64.dll");
 
-            return File.Exists(defaultDll);
+                return File.Exists(defaultDll);
+            }
+            catch
+            {
+                return false;
+            }
         }
-        catch
+        else if (OperatingSystem.IsLinux())
         {
-            return false;
+            return Directory.Exists("/dev/blackmagic") ||
+                   File.Exists("/usr/lib/libDeckLinkAPI.so") ||
+                   File.Exists("/usr/lib/x86_64-linux-gnu/libDeckLinkAPI.so") ||
+                   Directory.Exists("/sys/module/blackmagic") ||
+                   File.Exists("/usr/bin/BlackmagicDesktopVideo");
         }
+        return false;
     }
 
     private static async Task<List<IoDevice>> QueryDeckLinkDevicesWindowsAsync()

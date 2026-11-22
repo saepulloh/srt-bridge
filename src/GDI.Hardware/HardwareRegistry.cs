@@ -67,7 +67,10 @@ public sealed class HardwareRegistry
         {
             var match = Regex.Match(dl.Model, @"\((\d+)\)");
             int portNum = match.Success && int.TryParse(match.Groups[1].Value, out var n) ? n : dlIndex;
-            var filterName = portNum == 1 ? "Decklink Video Capture" : $"Decklink Video Capture ({portNum})";
+            var filterName = OperatingSystem.IsWindows()
+                ? (portNum == 1 ? "Decklink Video Capture" : $"Decklink Video Capture ({portNum})")
+                : (portNum == 1 ? "DeckLink SDI (1)" : $"DeckLink SDI ({portNum})");
+            var backend = OperatingSystem.IsWindows() ? "dshow" : "decklink";
 
             if (seenDevNames.Add(filterName))
             {
@@ -85,7 +88,7 @@ public sealed class HardwareRegistry
                     $"decklink_{portNum}",
                     displayName,
                     filterName,
-                    "dshow",
+                    backend,
                     "Blackmagic Design",
                     dl.Connection,
                     isInUse,

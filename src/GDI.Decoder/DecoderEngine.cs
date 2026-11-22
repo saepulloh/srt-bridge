@@ -77,7 +77,7 @@ public sealed class DecoderEngine : IDecoderEngine
             metrics.LastError = "";
             metrics.ActiveHardwareBackend = "Auto Hardware Decode (NVDEC / QSV / D3D11VA)";
 
-            var previewDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GDI", "SRT Embedded", "previews");
+            var previewDir = GdiEnvironment.GetPreviewsDirectory();
             try { Directory.CreateDirectory(previewDir); } catch { }
             var previewFile = Path.Combine(previewDir, $"{channel.Id:N}.jpg").Replace('\\', '/');
 
